@@ -64,6 +64,102 @@
       border-radius: 12px;
       padding: 8px 12px;
     }
+    /* iOS Bottom Sheet Modal */
+    .ios-bottom-sheet-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 1060;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+    .ios-bottom-sheet-backdrop.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .ios-bottom-sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: -100%;
+      background: #ffffff;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      z-index: 1065;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
+      transition: bottom 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .ios-bottom-sheet.active {
+      bottom: 0;
+    }
+    .ios-wheel-container {
+      position: relative;
+      height: 200px;
+      background: #f8f9fa;
+      overflow: hidden;
+    }
+    .ios-wheel-highlight {
+      position: absolute;
+      top: 80px;
+      left: 12px;
+      right: 12px;
+      height: 40px;
+      background-color: rgba(0, 0, 0, 0.05);
+      border-top: 1px solid #dee2e6;
+      border-bottom: 1px solid #dee2e6;
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .ios-wheel-col {
+      height: 200px;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      text-align: center;
+      padding: 80px 0;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ios-wheel-col::-webkit-scrollbar {
+      display: none;
+    }
+    .ios-wheel-item {
+      height: 40px;
+      line-height: 40px;
+      scroll-snap-align: center;
+      font-size: 1.15rem;
+      color: #6c757d;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ios-wheel-item.selected {
+      color: #0d6efd;
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+    .bill-receipt {
+      background: #ffffff;
+      border: 1px solid #dee2e6;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    }
+    .bill-divider {
+      border-top: 1.5px dashed #ced4da;
+      margin: 12px 0;
+    }
+    .formula-step {
+      background-color: #f8f9fa;
+      border-left: 3px solid #0d6efd;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+    }
     @media print {
       body * {
         visibility: hidden;
@@ -166,18 +262,39 @@
       </div>
     </div>
 
-    <!-- 1. MONTH STEPPER (แถบเลือกเดือนอัจฉริยะ) -->
+    <!-- 1. MONTH STEPPER (แถบเลือกเดือนพร้อม Bottom Sheet Wheel Picker) -->
     <div class="stepper-bar d-flex justify-content-between align-items-center mb-3 shadow-sm">
-      <button class="btn btn-outline-secondary touch-target px-3 fw-bold" onclick="navigateMonth(-1)">
-        ◀ เดือนก่อน
+      <button class="btn btn-outline-secondary touch-target px-2 px-sm-3 fw-bold" onclick="navigateMonth(-1)" aria-label="งวดก่อนหน้า">
+        ◀
       </button>
-      <div class="text-center px-2">
-        <div class="fw-bold text-primary fs-4 lh-sm" id="stepperThaiMonth">กำลังโหลด...</div>
-        <small class="text-muted" id="stepperIsoMonth">2026-09</small>
+      <div class="text-center px-2 flex-grow-1" style="cursor: pointer;" onclick="openMonthPicker()">
+        <div class="fw-bold text-primary fs-4 lh-sm d-flex align-items-center justify-content-center gap-1">
+          <span id="stepperThaiMonth">กำลังโหลด...</span>
+          <span class="fs-6 text-muted">▾</span>
+        </div>
+        <small class="text-muted" id="stepperIsoMonth">แตะเพื่อเลือกงวด</small>
       </div>
-      <button class="btn btn-outline-secondary touch-target px-3 fw-bold" onclick="navigateMonth(1)">
-        เดือนถัดไป ▶
+      <button class="btn btn-outline-secondary touch-target px-2 px-sm-3 fw-bold" onclick="navigateMonth(1)" aria-label="งวดถัดไป">
+        ▶
       </button>
+      <button class="btn btn-primary touch-target px-2 px-sm-3 fw-bold ms-2 no-print" onclick="createNewBillingPeriod()">
+        + ออกบิลใหม่
+      </button>
+    </div>
+
+    <!-- iOS Bottom Sheet Month Wheel Picker Modal -->
+    <div class="ios-bottom-sheet-backdrop" id="monthPickerBackdrop" onclick="closeMonthPicker()"></div>
+    <div class="ios-bottom-sheet" id="monthPickerSheet">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-white rounded-top-4">
+        <button type="button" class="btn btn-link text-secondary text-decoration-none fw-bold touch-target px-2" onclick="closeMonthPicker()">ยกเลิก</button>
+        <span class="fw-bold fs-5 text-dark">เลือกเดือน</span>
+        <button type="button" class="btn btn-link text-primary text-decoration-none fw-bold touch-target px-2" onclick="confirmMonthPicker()">ตกลง</button>
+      </div>
+      <div class="ios-wheel-container d-flex">
+        <div class="ios-wheel-highlight"></div>
+        <div class="ios-wheel-col flex-fill" id="wheelMonthCol"></div>
+        <div class="ios-wheel-col flex-fill" id="wheelYearCol"></div>
+      </div>
     </div>
 
     <!-- เมนูนำทางแบบ Horizontal Scrollable Tabs -->
@@ -204,7 +321,7 @@
   </header>
 
   <div class="tab-content" id="mainContent">
-    <!-- 1. DASHBOARD ปรับปรุงใหม่ (ยอดเรียกเก็บ, ป๊าได้, สถานะ, ปุ่มคัดลอก LINE) -->
+    <!-- 1. DASHBOARD v2 (Tenant Clean View & Owner Detailed Summary) -->
     <div class="tab-pane fade show active" id="tab-dashboard" role="tabpanel">
       <!-- แถบสถานะการชำระเงิน -->
       <div class="card p-3 mb-3 bg-white border-start border-4" id="dashStatusCard">
@@ -219,23 +336,158 @@
         </div>
       </div>
 
-      <!-- Hero Summary Cards -->
-      <div class="row g-3 mb-3">
-        <div class="col-12 col-md-6">
-          <div class="card p-3 bg-white border-primary border-2">
-            <span class="text-muted fw-bold">ยอดรวมผู้เช่าต้องชำระ</span>
-            <div class="stat-number text-primary" id="dashTotalBill">0.00 บาท</div>
+      <!-- 4. Tenant Bill View (ใบแจ้งค่าเช่าและค่าสาธารณูปโภคสำหรับผู้เช่า) -->
+      <div class="bill-receipt p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <h4 class="fw-bold text-dark m-0">🏡 ใบแจ้งค่าเช่าและค่าสาธารณูปโภค</h4>
+            <div class="text-muted fw-bold mt-1">ประจำเดือน <span id="tenantBillMonthDisplay">-</span></div>
+          </div>
+          <span class="badge bg-light text-secondary border" id="tenantBillDateDisplay">วันที่ออกบิล: -</span>
+        </div>
+        
+        <div class="bill-divider"></div>
+
+        <div class="d-flex justify-content-between py-1">
+          <span class="text-secondary">ค่าเช่า</span>
+          <span class="fw-bold text-dark" id="tenantBaseRent">0.00 บาท</span>
+        </div>
+        <div class="d-flex justify-content-between py-1 text-danger">
+          <span>ส่วนลดค่าเช่า</span>
+          <span class="fw-bold" id="tenantRentDiscount">-0.00 บาท</span>
+        </div>
+
+        <div class="bill-divider"></div>
+
+        <div class="d-flex justify-content-between py-1 bg-light px-2 rounded">
+          <span class="fw-bold text-dark">ค่าเช่าสุทธิ</span>
+          <span class="fw-bold text-dark" id="tenantNetRent">0.00 บาท</span>
+        </div>
+        <div class="d-flex justify-content-between py-1 px-2">
+          <span class="text-secondary">ค่าน้ำ</span>
+          <span class="fw-bold text-dark" id="tenantWater">0.00 บาท</span>
+        </div>
+
+        <div class="mt-2 p-2 rounded bg-light border">
+          <span class="fw-bold text-dark d-block mb-1">ค่าไฟฟ้า</span>
+          <div class="d-flex justify-content-between small text-muted">
+            <span>มิเตอร์:</span>
+            <span id="tenantMeterRange">- → -</span>
+          </div>
+          <div class="d-flex justify-content-between small text-muted">
+            <span>ใช้ไฟ:</span>
+            <span id="tenantMeterCalc">- หน่วย × - บาท</span>
+          </div>
+          <div class="d-flex justify-content-between fw-bold text-dark mt-1 pt-1 border-top">
+            <span>ค่าไฟ:</span>
+            <span id="tenantElectricCharge">0.00 บาท</span>
           </div>
         </div>
-        <div class="col-12 col-md-6">
-          <div class="card p-3 bg-white border-success border-2">
-            <span class="text-muted fw-bold">ส่วนแบ่งเจ้าของ (ป๊าได้)</span>
-            <div class="stat-number text-success" id="dashOwnerShare">0.00 บาท</div>
+
+        <div class="bill-divider"></div>
+
+        <div class="d-flex justify-content-between align-items-center pt-1">
+          <span class="fs-5 fw-bold text-dark">💰 ยอดรวมที่ต้องชำระ</span>
+          <span class="fs-4 fw-bold text-primary" id="dashTotalBill">0.00 บาท</span>
+        </div>
+      </div>
+
+      <!-- 5. Owner Summary (สรุปผลเจ้าของบ้าน) -->
+      <div class="card p-3 mb-3 bg-white border-0 shadow-sm">
+        <h5 class="fw-bold text-dark mb-3">📊 สรุปผลเดือน <span id="ownerSummaryMonthDisplay">-</span></h5>
+        <div class="row g-2">
+          <div class="col-4">
+            <div class="p-2 border rounded text-center bg-light">
+              <span class="text-muted small d-block">เก็บผู้เช่าได้</span>
+              <strong class="text-primary fs-6" id="ownerSumTotalBill">0.00 บาท</strong>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 border rounded text-center bg-light">
+              <span class="text-muted small d-block">ต้นทุนไฟจริง</span>
+              <strong class="text-dark fs-6" id="ownerSumActualCost">0.00 บาท</strong>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2 border rounded text-center bg-light">
+              <span class="text-muted small d-block">กำไรค่าไฟ</span>
+              <strong class="text-success fs-6" id="dashElectricProfit">0.00 บาท</strong>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- ปุ่มส่งงานทาง LINE (Fast Copy Actions) -->
+      <!-- 6. Expandable Calculation (ปุ่มกดดูกรรมวิธีการคำนวณอย่างละเอียด) -->
+      <div class="card mb-3 border-0 shadow-sm no-print">
+        <div class="card-header bg-white border-0 p-3" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#expandCalcArea">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-primary">📊 ดูวิธีคำนวณ (ตรวจสอบที่มาของตัวเลข)</span>
+            <span class="text-muted">▾</span>
+          </div>
+        </div>
+        <div class="collapse px-3 pb-3" id="expandCalcArea">
+          <div class="border-top pt-2">
+            <div class="formula-step">
+              <span class="fw-bold text-dark d-block">1. มิเตอร์ไฟ</span>
+              <div class="small text-muted" id="calcStep1">-</div>
+            </div>
+            <div class="formula-step">
+              <span class="fw-bold text-dark d-block">2. ค่าไฟที่เรียกเก็บ</span>
+              <div class="small text-muted" id="calcStep2">-</div>
+            </div>
+            <div class="formula-step">
+              <span class="fw-bold text-dark d-block">3. ต้นทุนไฟหลวงต่อหน่วย</span>
+              <div class="small text-muted" id="calcStep3">-</div>
+            </div>
+            <div class="formula-step">
+              <span class="fw-bold text-dark d-block">4. ต้นทุนไฟจริง</span>
+              <div class="small text-muted" id="calcStep4">-</div>
+            </div>
+            <div class="formula-step">
+              <span class="fw-bold text-dark d-block">5. กำไรค่าไฟ</span>
+              <div class="small text-muted" id="calcStep5">-</div>
+            </div>
+            <div class="formula-step">
+              <span class="fw-bold text-dark d-block">6. สูตรแบ่งรายได้เจ้าของ</span>
+              <div class="small text-muted" id="calcStep6">(ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Owner Revenue Section (ส่วนแบ่งป๊า และ ส่วนแบ่งอากู้) -->
+      <div class="row g-3 mb-3">
+        <!-- ป๊า -->
+        <div class="col-12 col-md-6">
+          <div class="card p-3 bg-white border-success border-2 shadow-sm">
+            <h5 class="fw-bold text-success mb-2">👴 ส่วนแบ่งป๊า</h5>
+            <div class="small text-muted mb-1">ค่าเช่าสุทธิ ÷ 2: <span id="paRentShareText">-</span></div>
+            <div class="small text-muted mb-2">กำไรค่าไฟ ÷ 2: <span id="paProfitShareText">-</span></div>
+            <div class="bill-divider"></div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold text-dark">💵 ป๊าได้รับ</span>
+              <span class="stat-number text-success" id="dashOwnerShare">0 บาท</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- อากู้ -->
+        <div class="col-12 col-md-6">
+          <div class="card p-3 bg-white border-info border-2 shadow-sm">
+            <h5 class="fw-bold text-info mb-2">👨 ส่วนแบ่งอากู้</h5>
+            <div class="small text-muted mb-1">ค่าเช่าสุทธิ ÷ 2: <span id="akuRentShareText">-</span></div>
+            <div class="small text-muted mb-1">กำไรค่าไฟ ÷ 2: <span id="akuProfitShareText">-</span></div>
+            <div class="small text-muted mb-2">ค่าน้ำ: <span id="akuWaterText">+100 บาท</span></div>
+            <div class="bill-divider"></div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold text-dark">💵 อากู้ได้รับ</span>
+              <span class="stat-number text-info" id="akuTotalShare">0 บาท</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ปุ่มส่งงานทาง LINE -->
       <div class="card p-3 mb-3 bg-white border-0 shadow-sm no-print">
         <span class="text-muted small fw-bold mb-2 d-block">ส่งยอดประจำเดือนทาง LINE</span>
         <div class="row g-2">
@@ -246,36 +498,8 @@
           </div>
           <div class="col-12 col-md-6">
             <button class="btn btn-outline-success btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="copyOwnerSummaryLine()">
-              📋 2. คัดลอกสรุปยอดให้ป๊า (LINE)
+              📋 2. คัดลอกสรุปยอดให้ป๊า / อากู้ (LINE)
             </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ข้อมูลรายละเอียดไฟฟ้าประจำเดือน -->
-      <div class="row g-3 mb-3">
-        <div class="col-6">
-          <div class="card p-3 bg-white">
-            <span class="text-muted small">หน่วยที่ผู้เช่าใช้</span>
-            <div class="fs-4 fw-bold text-dark" id="dashUsedUnit">0 หน่วย</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="card p-3 bg-white">
-            <span class="text-muted small">ต้นทุนไฟต่อหน่วย</span>
-            <div class="fs-4 fw-bold text-dark" id="dashCostPerUnit">0.00 บาท</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="card p-3 bg-white">
-            <span class="text-muted small">ค่าไฟเรียกเก็บ</span>
-            <div class="fs-4 fw-bold text-dark" id="dashElectricCharge">0.00 บาท</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="card p-3 bg-white">
-            <span class="text-muted small">กำไรค่าไฟ</span>
-            <div class="fs-4 fw-bold text-success" id="dashElectricProfit">0.00 บาท</div>
           </div>
         </div>
       </div>
@@ -304,11 +528,11 @@
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">จำนวนหน่วยรวม (kWh)</label>
-          <input type="number" class="form-control" id="billUnitInput" placeholder="เช่น 924" step="any" min="0">
+          <input type="number" inputmode="numeric" class="form-control" id="billUnitInput" placeholder="เช่น 924" step="any" min="0">
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">ยอดเงินรวมสุทธิที่ต้องชำระ (บาท)</label>
-          <input type="number" class="form-control" id="billAmountInput" placeholder="เช่น 4325.95" step="any" min="0">
+          <input type="number" inputmode="decimal" class="form-control" id="billAmountInput" placeholder="เช่น 4325.95" step="any" min="0">
         </div>
         <button class="btn btn-primary btn-lg w-100 mt-2 touch-target" id="btnSaveBill" onclick="saveUtilityBill()">
           บันทึกข้อมูลบิลไฟหลวง
@@ -332,16 +556,19 @@
             ℹ️ ระบบอ่านรูปภาพอัตโนมัติอยู่ระหว่างพัฒนา — สามารถกรอกตัวเลขหน้าปัดลงในช่องด้านล่างได้ทันที
           </div>
         </div>
-        <div class="mb-3">
+      <div class="mb-3">
           <div class="d-flex justify-content-between align-items-center">
             <label class="form-label fw-bold m-0">เลขมิเตอร์เดือนก่อน (หน่วยเต็ม)</label>
             <span class="badge bg-secondary" id="autoFillMeterBadge">ระบบค้นหาอัตโนมัติ</span>
           </div>
-          <input type="number" class="form-control mt-1" id="meterPrevInput" placeholder="เช่น 20365" step="1" min="0">
+          <input type="number" inputmode="numeric" class="form-control mt-1" id="meterPrevInput" placeholder="เช่น 20365" step="1" min="0" oninput="calculateRealtimeMeterUnits()">
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">เลขมิเตอร์เดือนปัจจุบัน (หน่วยเต็ม)</label>
-          <input type="number" class="form-control" id="meterCurrInput" placeholder="เช่น 20782" step="1" min="0">
+          <input type="number" inputmode="numeric" class="form-control" id="meterCurrInput" placeholder="เช่น 20782" step="1" min="0" oninput="calculateRealtimeMeterUnits()">
+          <div id="meterRealtimeFeedback" class="mt-2 small fw-bold text-primary d-none">
+            ⚡ ใช้ไฟ: <span id="meterRealtimeUnitsText">0</span> หน่วย
+          </div>
         </div>
         <button class="btn btn-primary btn-lg w-100 mt-2 touch-target" id="btnSaveMeter" onclick="saveMeterReading()">
           บันทึกข้อมูลมิเตอร์
@@ -534,8 +761,12 @@
     "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
   ];
 
+  let tempPickerMonth = 1;
+  let tempPickerYear = 2026;
+
   document.addEventListener("DOMContentLoaded", async () => {
     currentSelectedMonth = "";
+    initWheelPickerOptions();
     await checkAuthStatus();
   });
 
@@ -574,13 +805,115 @@
     }
   }
 
-  // 1. Month Stepper Handler
+  function initWheelPickerOptions() {
+    const monthCol = document.getElementById("wheelMonthCol");
+    const yearCol = document.getElementById("wheelYearCol");
+    if (!monthCol || !yearCol) return;
+
+    monthCol.innerHTML = "";
+    thaiMonths.forEach((m, idx) => {
+      const div = document.createElement("div");
+      div.className = "ios-wheel-item";
+      div.dataset.month = idx + 1;
+      div.innerText = m;
+      div.onclick = () => selectWheelMonth(idx + 1);
+      monthCol.appendChild(div);
+    });
+
+    yearCol.innerHTML = "";
+    // ช่วงปี พ.ศ. 2566 ถึง 2575 (ค.ศ. 2023 - 2032)
+    for (let y = 2023; y <= 2032; y++) {
+      const div = document.createElement("div");
+      div.className = "ios-wheel-item";
+      div.dataset.year = y;
+      div.innerText = y + 543;
+      div.onclick = () => selectWheelYear(y);
+      yearCol.appendChild(div);
+    }
+  }
+
+  function selectWheelMonth(m) {
+    tempPickerMonth = m;
+    document.querySelectorAll("#wheelMonthCol .ios-wheel-item").forEach(el => {
+      el.classList.toggle("selected", Number(el.dataset.month) === m);
+    });
+  }
+
+  function selectWheelYear(y) {
+    tempPickerYear = y;
+    document.querySelectorAll("#wheelYearCol .ios-wheel-item").forEach(el => {
+      el.classList.toggle("selected", Number(el.dataset.year) === y);
+    });
+  }
+
+  function openMonthPicker() {
+    if (currentSelectedMonth && currentSelectedMonth.includes("-")) {
+      const [y, m] = currentSelectedMonth.split("-").map(Number);
+      tempPickerYear = y;
+      tempPickerMonth = m;
+    }
+    selectWheelMonth(tempPickerMonth);
+    selectWheelYear(tempPickerYear);
+
+    document.getElementById("monthPickerBackdrop").classList.add("active");
+    document.getElementById("monthPickerSheet").classList.add("active");
+
+    // เลื่อน Scroll ไปยังตำแหน่งที่เลือก
+    setTimeout(() => {
+      const selMonth = document.querySelector("#wheelMonthCol .ios-wheel-item.selected");
+      if (selMonth) selMonth.scrollIntoView({ block: "center", behavior: "smooth" });
+      const selYear = document.querySelector("#wheelYearCol .ios-wheel-item.selected");
+      if (selYear) selYear.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 150);
+  }
+
+  function closeMonthPicker() {
+    document.getElementById("monthPickerBackdrop").classList.remove("active");
+    document.getElementById("monthPickerSheet").classList.remove("active");
+  }
+
+  function confirmMonthPicker() {
+    const monthStr = String(tempPickerMonth).padStart(2, "0");
+    currentSelectedMonth = `${tempPickerYear}-${monthStr}`;
+    closeMonthPicker();
+    updateMonthViews();
+  }
+
+  // ออกบิลใหม่: หาบิลล่าสุดในระบบ แล้วเลือกงวดถัดไปอัตโนมัติ
+  function createNewBillingPeriod() {
+    const existingMonths = Object.keys(statementCache).sort();
+    let baseMonth = currentSelectedMonth;
+    if (existingMonths.length > 0) {
+      baseMonth = existingMonths[existingMonths.length - 1];
+    }
+    if (!baseMonth) {
+      baseMonth = "2026-08";
+    }
+    const [year, month] = baseMonth.split("-").map(Number);
+    let nextYear = year;
+    let nextMonth = month + 1;
+    if (nextMonth > 12) {
+      nextYear += 1;
+      nextMonth = 1;
+    }
+    currentSelectedMonth = `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+    updateMonthViews();
+    showToast(`เปิดงวดใหม่: ${formatThaiMonth(currentSelectedMonth)}`);
+  }
+
+  // 1. Month Stepper Handler (เลื่อนงวดทีละเดือน)
   function navigateMonth(offset) {
-    const [year, month] = currentSelectedMonth.split("-").map(Number);
-    const date = new Date(year, month - 1 + offset, 1);
-    const newYear = date.getFullYear();
-    const newMonth = String(date.getMonth() + 1).padStart(2, "0");
-    currentSelectedMonth = `${newYear}-${newMonth}`;
+    if (!currentSelectedMonth) return;
+    let [year, month] = currentSelectedMonth.split("-").map(Number);
+    month += offset;
+    if (month > 12) {
+      year += 1;
+      month = 1;
+    } else if (month < 1) {
+      year -= 1;
+      month = 12;
+    }
+    currentSelectedMonth = `${year}-${String(month).padStart(2, "0")}`;
     updateMonthViews();
   }
 
@@ -655,25 +988,27 @@ async function updateMonthViews() {
     }
   }
 
-  // 3. ปุ่มคัดลอกข้อความส่ง LINE ให้ผู้เช่า
+  // 3. ปุ่มคัดลอกข้อความส่ง LINE ให้ผู้เช่า (Clean View)
   function copyTenantBillLine() {
-    if (!latestStatement) {
-      alert("ยังไม่มีข้อมูลการคำนวณสำหรับเดือนนี้ กรุณากดคำนวณก่อน");
+    if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
+      alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
       return;
     }
     const r = latestStatement;
     const thaiMonth = formatThaiMonth(r.month);
     const bankAccount = r.bankAccount && r.bankAccount.trim() !== "" ? r.bankAccount : currentSettings.bankAccount;
 
-    const text = `🏡 สรุปค่าเช่าบ้านประจำเดือน ${thaiMonth}
+    const text = `🏡 ใบแจ้งค่าเช่าและค่าสาธารณูปโภค
+ประจำเดือน: ${thaiMonth}
+
 - ค่าเช่าสุทธิ: ${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
 - ค่าน้ำ: ${r.waterAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-- ค่าไฟ: ${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-  (มิเตอร์ ${r.previousReading} -> ${r.currentReading} = ${r.usedUnit} หน่วย @ ${r.electricSellRate} บ.)
+- ค่าไฟฟ้า: ${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
+  (มิเตอร์ ${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")} | ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย @ ${r.electricSellRate} บาท)
 
-💰 รวมยอดที่ต้องชำระ: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
+💰 ยอดรวมที่ต้องชำระ: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
 
-โอนเข้าบัญชี:
+ช่องทางชำระเงิน:
 ${bankAccount}
 
 โอนแล้วรบกวนส่งสลิปด้วยครับ ขอบคุณครับ`;
@@ -681,28 +1016,31 @@ ${bankAccount}
     copyToClipboard(text, "คัดลอกบิลส่งผู้เช่า (LINE) เรียบร้อยแล้ว!");
   }
 
-  // 4. ปุ่มคัดลอกข้อความสรุปส่วนแบ่งเงินให้ป๊า
+  // 4. ปุ่มคัดลอกข้อความสรุปส่วนแบ่งเงินให้ป๊าและอากู้
   function copyOwnerSummaryLine() {
-    if (!latestStatement) {
-      alert("ยังไม่มีข้อมูลการคำนวณสำหรับเดือนนี้ กรุณากดคำนวณก่อน");
+    if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
+      alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
       return;
     }
     const r = latestStatement;
     const thaiMonth = formatThaiMonth(r.month);
-    const rentShare = r.netRentAmount / 2;
-    const profitShare = r.electricProfit / 2;
+    const paShareRounded = Math.round(r.ownerShare);
+    const akuShareRounded = Math.round(r.ownerShare + r.waterAmount);
 
-    const text = `📊 สรุปยอดบ้านเช่า เดือน ${thaiMonth}
-- เก็บผู้เช่าได้รวม: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-- ต้นทุนไฟจริง: ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท (${r.costPerUnit.toFixed(2)} บ./หน่วย)
+    const text = `📊 สรุปยอดบ้านเช่า ประจำเดือน ${thaiMonth}
+- เก็บผู้เช่าได้: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
+- ต้นทุนไฟจริง: ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท (${r.costPerUnit.toFixed(4)} บ./หน่วย)
 - กำไรค่าไฟ: ${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
 
-ส่วนแบ่งของป๊า:
-- ค่าเช่าสุทธิหารสอง: ${rentShare.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-- กำไรค่าไฟหารสอง: ${profitShare.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-💵 ยอดโอนให้ป๊า: ${r.ownerShare.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+👴 ส่วนแบ่งป๊า:
+- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)
+💵 ป๊าได้รับ: ${paShareRounded.toLocaleString("th-TH")} บาท
 
-    copyToClipboard(text, "คัดลอกสรุปยอดให้ป๊า (LINE) เรียบร้อยแล้ว!");
+👨 ส่วนแบ่งอากู้:
+- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2) + ค่าน้ำ
+💵 อากู้ได้รับ: ${akuShareRounded.toLocaleString("th-TH")} บาท`;
+
+    copyToClipboard(text, "คัดลอกสรุปยอดให้ป๊า / อากู้ (LINE) เรียบร้อยแล้ว!");
   }
 
   async function setBtnLoading(buttonId, isLoading, defaultText = "") {
@@ -1121,6 +1459,26 @@ ${bankAccount}
     updatePaymentStatus(latestStatement.month, newStatus);
   }
 
+  function calculateRealtimeMeterUnits() {
+    const prev = Number(document.getElementById("meterPrevInput").value);
+    const curr = Number(document.getElementById("meterCurrInput").value);
+    const feedback = document.getElementById("meterRealtimeFeedback");
+    const textSpan = document.getElementById("meterRealtimeUnitsText");
+
+    if (!isNaN(prev) && !isNaN(curr) && curr >= prev && prev > 0 && curr > 0) {
+      const units = curr - prev;
+      textSpan.innerText = units.toLocaleString("th-TH");
+      feedback.className = "mt-2 small fw-bold text-success";
+      feedback.classList.remove("d-none");
+    } else if (curr > 0 && curr < prev) {
+      feedback.className = "mt-2 small fw-bold text-danger";
+      feedback.innerText = "⚠️ เลขมิเตอร์ปัจจุบันน้อยกว่าเลขเดือนก่อนหน้า";
+      feedback.classList.remove("d-none");
+    } else {
+      feedback.classList.add("d-none");
+    }
+  }
+
   function renderDashboard(statement) {
     latestStatement = statement;
 
@@ -1129,12 +1487,35 @@ ${bankAccount}
     const btn = document.getElementById("dashPaymentToggleBtn");
 
     if (!statement) {
+      document.getElementById("tenantBillMonthDisplay").innerText = formatThaiMonth(currentSelectedMonth);
+      document.getElementById("tenantBillDateDisplay").innerText = "วันที่ออกบิล: -";
+      document.getElementById("tenantBaseRent").innerText = "-";
+      document.getElementById("tenantRentDiscount").innerText = "-";
+      document.getElementById("tenantNetRent").innerText = "-";
+      document.getElementById("tenantWater").innerText = "-";
+      document.getElementById("tenantMeterRange").innerText = "- → -";
+      document.getElementById("tenantMeterCalc").innerText = "- หน่วย × - บ.";
+      document.getElementById("tenantElectricCharge").innerText = "-";
       document.getElementById("dashTotalBill").innerText = "ยังไม่ได้ประมวลผล";
-      document.getElementById("dashOwnerShare").innerText = "-";
-      document.getElementById("dashUsedUnit").innerText = "0 หน่วย";
-      document.getElementById("dashCostPerUnit").innerText = "0.00 บาท";
-      document.getElementById("dashElectricCharge").innerText = "0.00 บาท";
-      document.getElementById("dashElectricProfit").innerText = "0.00 บาท";
+
+      document.getElementById("ownerSummaryMonthDisplay").innerText = formatThaiMonth(currentSelectedMonth);
+      document.getElementById("ownerSumTotalBill").innerText = "-";
+      document.getElementById("ownerSumActualCost").innerText = "-";
+      document.getElementById("dashElectricProfit").innerText = "-";
+
+      document.getElementById("calcStep1").innerText = "ยังไม่มีข้อมูล";
+      document.getElementById("calcStep2").innerText = "ยังไม่มีข้อมูล";
+      document.getElementById("calcStep3").innerText = "ยังไม่มีข้อมูล";
+      document.getElementById("calcStep4").innerText = "ยังไม่มีข้อมูล";
+      document.getElementById("calcStep5").innerText = "ยังไม่มีข้อมูล";
+
+      document.getElementById("paRentShareText").innerText = "-";
+      document.getElementById("paProfitShareText").innerText = "-";
+      document.getElementById("dashOwnerShare").innerText = "0 บาท";
+
+      document.getElementById("akuRentShareText").innerText = "-";
+      document.getElementById("akuProfitShareText").innerText = "-";
+      document.getElementById("akuTotalShare").innerText = "0 บาท";
 
       statusCard.className = "card p-3 mb-3 bg-white border-start border-4 border-secondary";
       badge.className = "status-badge text-muted";
@@ -1144,16 +1525,59 @@ ${bankAccount}
       return;
     }
 
-    document.getElementById("dashTotalBill").innerText = `${statement.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
-    document.getElementById("dashOwnerShare").innerText = `${statement.ownerShare.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
-    document.getElementById("dashUsedUnit").innerText = `${statement.usedUnit} หน่วย`;
-    document.getElementById("dashCostPerUnit").innerText = `${statement.costPerUnit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
-    document.getElementById("dashElectricCharge").innerText = `${statement.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
-    document.getElementById("dashElectricProfit").innerText = `${statement.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
-
     btn.classList.remove("disabled");
-    const isPaid = statement.paymentStatus === "paid";
+    const r = statement;
 
+    // วันที่ออกบิล (จาก updatedAt หรือวันที่บันทึก)
+    let billDateText = "-";
+    if (r.updatedAt) {
+      const d = new Date(r.updatedAt);
+      billDateText = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear() + 543}`;
+    }
+
+    // 1. Tenant Bill View (แสดงเฉพาะข้อมูลที่ผู้เช่าต้องรู้ - ห้ามมีกำไร/ต้นทุน/ส่วนแบ่ง)
+    document.getElementById("tenantBillMonthDisplay").innerText = formatThaiMonth(r.month);
+    document.getElementById("tenantBillDateDisplay").innerText = `วันที่ออกบิล: ${billDateText}`;
+    document.getElementById("tenantBaseRent").innerText = `${r.baseRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("tenantRentDiscount").innerText = `-${r.rentDiscount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("tenantNetRent").innerText = `${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("tenantWater").innerText = `${r.waterAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("tenantMeterRange").innerText = `${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}`;
+    document.getElementById("tenantMeterCalc").innerText = `${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท`;
+    document.getElementById("tenantElectricCharge").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("dashTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+
+    // 2. Owner Summary Card
+    document.getElementById("ownerSummaryMonthDisplay").innerText = formatThaiMonth(r.month);
+    document.getElementById("ownerSumTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("ownerSumActualCost").innerText = `${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+    document.getElementById("dashElectricProfit").innerText = `${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+
+    // 3. Expandable Calculation Steps (6 ขั้นตอนครบถ้วน)
+    document.getElementById("calcStep1").innerText = `${r.currentReading.toLocaleString("th-TH")} - ${r.previousReading.toLocaleString("th-TH")} = ${r.usedUnit.toLocaleString("th-TH")} หน่วย`;
+    document.getElementById("calcStep2").innerText = `${r.usedUnit.toLocaleString("th-TH")} × ${r.electricSellRate} = ${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("calcStep3").innerText = `${r.utilityBillAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ ${r.utilityBillUnit.toLocaleString("th-TH")} = ${r.costPerUnit.toFixed(4)} บาท/หน่วย`;
+    document.getElementById("calcStep4").innerText = `${r.usedUnit.toLocaleString("th-TH")} × ${r.costPerUnit.toFixed(4)} = ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("calcStep5").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} - ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} = ${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("calcStep6").innerText = `(${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2) + (${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2)`;
+
+    // 4. Owner Revenue (ป๊า & อากู้)
+    const rentHalf = r.netRentAmount / 2;
+    const profitHalf = r.electricProfit / 2;
+    const paShareRounded = Math.round(r.ownerShare); // ป๊าได้ ownerShare ปัดเป็นจำนวนเต็ม
+    const akuShareRounded = Math.round(r.ownerShare + r.waterAmount); // อากู้ได้ ownerShare + ค่าน้ำ ปัดเป็นจำนวนเต็ม
+
+    document.getElementById("paRentShareText").innerText = `${r.netRentAmount.toLocaleString("th-TH")} ÷ 2 = ${rentHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("paProfitShareText").innerText = `${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2 = ${profitHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("dashOwnerShare").innerText = `${paShareRounded.toLocaleString("th-TH")} บาท`;
+
+    document.getElementById("akuRentShareText").innerText = `${r.netRentAmount.toLocaleString("th-TH")} ÷ 2 = ${rentHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("akuProfitShareText").innerText = `${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2 = ${profitHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("akuWaterText").innerText = `+${r.waterAmount.toLocaleString("th-TH")} บาท`;
+    document.getElementById("akuTotalShare").innerText = `${akuShareRounded.toLocaleString("th-TH")} บาท`;
+
+    // สถานะการชำระเงิน
+    const isPaid = r.paymentStatus === "paid";
     if (isPaid) {
       statusCard.className = "card p-3 mb-3 bg-white border-start border-4 border-success";
       badge.className = "status-badge text-success";
@@ -1194,18 +1618,15 @@ ${bankAccount}
         statementCache[r.month] = r;
       });
 
-    records.forEach(r => {
-        statementCache[r.month] = r;
-      });
-
       // กำหนดงวดเริ่มต้นจากงวดล่าสุดที่มีข้อมูลจริงในระบบ หากยังไม่มีการเลือกงวด
       if (!currentSelectedMonth && records.length > 0) {
         currentSelectedMonth = records[0].month;
-        document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
-        document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
       }
 
-      // ซิงค์การแสดงผล Dashboard ให้ตรงกับงวดที่เลือกอยู่ 100%
+      document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
+      document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
+
+      // ซิงค์การแสดงผล Dashboard ให้ตรงกับงวดที่เลือกอยู่ 100% หากไม่มีข้อมูลให้แสดงสถานะว่าง
       if (currentSelectedMonth && statementCache[currentSelectedMonth]) {
         renderDashboard(statementCache[currentSelectedMonth]);
       } else {
@@ -1226,11 +1647,11 @@ ${bankAccount}
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="fw-bold">${thaiMonthText}</td>
-          <td>${r.previousReading} → ${r.currentReading}</td>
-          <td class="fw-bold">${r.usedUnit}</td>
+          <td>${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}</td>
+          <td class="fw-bold">${r.usedUnit.toLocaleString("th-TH")}</td>
           <td>${r.costPerUnit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td class="fw-bold text-primary">${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td class="fw-bold text-success">${r.ownerShare.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="fw-bold text-success">${Math.round(r.ownerShare).toLocaleString("th-TH")}</td>
           <td>${statusBadge}</td>
           <td>
             <div class="btn-group">
@@ -1256,15 +1677,15 @@ ${bankAccount}
             </div>
             <div class="col-6">
               <span class="text-muted small d-block">ส่วนแบ่งป๊าได้</span>
-              <strong class="text-success fs-5">${r.ownerShare.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บ.</strong>
+              <strong class="text-success fs-5">${Math.round(r.ownerShare).toLocaleString("th-TH")} บ.</strong>
             </div>
             <div class="col-6">
               <span class="text-muted small d-block">มิเตอร์</span>
-              <span>${r.previousReading} → ${r.currentReading}</span>
+              <span>${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}</span>
             </div>
             <div class="col-6">
               <span class="text-muted small d-block">ใช้ไป / ต้นทุน</span>
-              <span>${r.usedUnit} หน่วย (${r.costPerUnit.toFixed(2)} บ.)</span>
+              <span>${r.usedUnit.toLocaleString("th-TH")} หน่วย (${r.costPerUnit.toFixed(2)} บ.)</span>
             </div>
           </div>
           <div class="d-flex gap-2">
