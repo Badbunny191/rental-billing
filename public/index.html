@@ -535,8 +535,7 @@
   ];
 
   document.addEventListener("DOMContentLoaded", async () => {
-    const today = new Date();
-    currentSelectedMonth = today.toISOString().slice(0, 7);
+    currentSelectedMonth = "";
     await checkAuthStatus();
   });
 
@@ -592,7 +591,7 @@
     }
   }
 
-  async function updateMonthViews() {
+async function updateMonthViews() {
     document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
     document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
 
@@ -604,12 +603,13 @@
     await loadMeterReadingForMonth();
     await autoFillPreviousMeter();
 
-    // แสดงผลข้อมูล Statement ประจำเดือนถ้ามีอยู่ใน Cache
+    // ซิงค์สถานะ Dashboard กับงวดที่เลือก หากยังไม่มีข้อมูลให้ส่ง null
     if (statementCache[currentSelectedMonth]) {
       renderDashboard(statementCache[currentSelectedMonth]);
+    } else {
+      renderDashboard(null);
     }
   }
-
   // 2. Auto-Fill เลขมิเตอร์เดือนก่อนหน้า
   async function autoFillPreviousMeter() {
     const currPrevVal = document.getElementById("meterPrevInput").value;
@@ -1122,8 +1122,27 @@ ${bankAccount}
   }
 
   function renderDashboard(statement) {
-    if (!statement) return;
     latestStatement = statement;
+
+    const statusCard = document.getElementById("dashStatusCard");
+    const badge = document.getElementById("dashPaymentBadge");
+    const btn = document.getElementById("dashPaymentToggleBtn");
+
+    if (!statement) {
+      document.getElementById("dashTotalBill").innerText = "ยังไม่ได้ประมวลผล";
+      document.getElementById("dashOwnerShare").innerText = "-";
+      document.getElementById("dashUsedUnit").innerText = "0 หน่วย";
+      document.getElementById("dashCostPerUnit").innerText = "0.00 บาท";
+      document.getElementById("dashElectricCharge").innerText = "0.00 บาท";
+      document.getElementById("dashElectricProfit").innerText = "0.00 บาท";
+
+      statusCard.className = "card p-3 mb-3 bg-white border-start border-4 border-secondary";
+      badge.className = "status-badge text-muted";
+      badge.innerText = "⚪ งวดนี้ยังไม่มีการคำนวณ";
+      btn.className = "btn btn-secondary btn-lg touch-target no-print disabled";
+      btn.innerText = "รอการคำนวณ";
+      return;
+    }
 
     document.getElementById("dashTotalBill").innerText = `${statement.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
     document.getElementById("dashOwnerShare").innerText = `${statement.ownerShare.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
@@ -1132,10 +1151,8 @@ ${bankAccount}
     document.getElementById("dashElectricCharge").innerText = `${statement.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
     document.getElementById("dashElectricProfit").innerText = `${statement.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
 
+    btn.classList.remove("disabled");
     const isPaid = statement.paymentStatus === "paid";
-    const statusCard = document.getElementById("dashStatusCard");
-    const badge = document.getElementById("dashPaymentBadge");
-    const btn = document.getElementById("dashPaymentToggleBtn");
 
     if (isPaid) {
       statusCard.className = "card p-3 mb-3 bg-white border-start border-4 border-success";
@@ -1177,11 +1194,22 @@ ${bankAccount}
         statementCache[r.month] = r;
       });
 
-      // ถ้าเดือนที่กำลังเลือกอยู่มี statement ให้ render ขึ้นหน้า Dashboard
-      if (statementCache[currentSelectedMonth]) {
+    records.forEach(r => {
+        statementCache[r.month] = r;
+      });
+
+      // กำหนดงวดเริ่มต้นจากงวดล่าสุดที่มีข้อมูลจริงในระบบ หากยังไม่มีการเลือกงวด
+      if (!currentSelectedMonth && records.length > 0) {
+        currentSelectedMonth = records[0].month;
+        document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
+        document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
+      }
+
+      // ซิงค์การแสดงผล Dashboard ให้ตรงกับงวดที่เลือกอยู่ 100%
+      if (currentSelectedMonth && statementCache[currentSelectedMonth]) {
         renderDashboard(statementCache[currentSelectedMonth]);
       } else {
-        renderDashboard(records[0]);
+        renderDashboard(null);
       }
 
       records.forEach(r => {
