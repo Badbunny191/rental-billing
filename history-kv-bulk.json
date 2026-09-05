@@ -1,0 +1,434 @@
+[
+  {
+    "key": "monthly_statement:2023-06",
+    "value": "{\"month\":\"2023-06\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":794,\"utilityBillAmount\":4325.15,\"previousReading\":4413,\"currentReading\":4814,\"usedUnit\":401,\"costPerUnit\":5.447292191435768,\"electricCharge\":2807,\"actualElectricCost\":2184.3641687657428,\"electricProfit\":622.6358312342572,\"ownerShare\":3061.3179156171286,\"totalBill\":8407,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2023-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2023-06",
+    "value": "{\"month\":\"2023-06\",\"unit\":794,\"amount\":4325.15,\"updatedAt\":\"2023-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2023-06",
+    "value": "{\"month\":\"2023-06\",\"previousReading\":4413,\"currentReading\":4814,\"updatedAt\":\"2023-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2023-07",
+    "value": "{\"month\":\"2023-07\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":801,\"utilityBillAmount\":4365.1,\"previousReading\":4814,\"currentReading\":5248,\"usedUnit\":434,\"costPerUnit\":5.44956304619226,\"electricCharge\":3038,\"actualElectricCost\":2365.110362047441,\"electricProfit\":672.889637952559,\"ownerShare\":3086.4448189762797,\"totalBill\":8638,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2023-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2023-07",
+    "value": "{\"month\":\"2023-07\",\"unit\":801,\"amount\":4365.1,\"updatedAt\":\"2023-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2023-07",
+    "value": "{\"month\":\"2023-07\",\"previousReading\":4814,\"currentReading\":5248,\"updatedAt\":\"2023-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2023-09",
+    "value": "{\"month\":\"2023-09\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":788,\"utilityBillAmount\":4290.91,\"previousReading\":5636,\"currentReading\":6044,\"usedUnit\":408,\"costPerUnit\":5.445317258883248,\"electricCharge\":2856,\"actualElectricCost\":2221.6894416243654,\"electricProfit\":634.3105583756346,\"ownerShare\":3067.1552791878175,\"totalBill\":8456,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2023-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2023-09",
+    "value": "{\"month\":\"2023-09\",\"unit\":788,\"amount\":4290.91,\"updatedAt\":\"2023-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2023-09",
+    "value": "{\"month\":\"2023-09\",\"previousReading\":5636,\"currentReading\":6044,\"updatedAt\":\"2023-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2023-10",
+    "value": "{\"month\":\"2023-10\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":813,\"utilityBillAmount\":4222.2,\"previousReading\":6044,\"currentReading\":6452,\"usedUnit\":408,\"costPerUnit\":5.193357933579335,\"electricCharge\":2856,\"actualElectricCost\":2118.8900369003686,\"electricProfit\":737.1099630996314,\"ownerShare\":3118.5549815498157,\"totalBill\":8456,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2023-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2023-10",
+    "value": "{\"month\":\"2023-10\",\"unit\":813,\"amount\":4222.2,\"updatedAt\":\"2023-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2023-10",
+    "value": "{\"month\":\"2023-10\",\"previousReading\":6044,\"currentReading\":6452,\"updatedAt\":\"2023-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2023-11",
+    "value": "{\"month\":\"2023-11\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":767,\"utilityBillAmount\":3187.02,\"previousReading\":6452,\"currentReading\":6797,\"usedUnit\":345,\"costPerUnit\":4.155176010430248,\"electricCharge\":2415,\"actualElectricCost\":1433.5357235984354,\"electricProfit\":981.4642764015646,\"ownerShare\":3240.732138200782,\"totalBill\":8015,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2023-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2023-11",
+    "value": "{\"month\":\"2023-11\",\"unit\":767,\"amount\":3187.02,\"updatedAt\":\"2023-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2023-11",
+    "value": "{\"month\":\"2023-11\",\"previousReading\":6452,\"currentReading\":6797,\"updatedAt\":\"2023-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2023-12",
+    "value": "{\"month\":\"2023-12\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":814,\"utilityBillAmount\":3823.42,\"previousReading\":6797,\"currentReading\":7243,\"usedUnit\":446,\"costPerUnit\":4.697076167076167,\"electricCharge\":3122,\"actualElectricCost\":2094.8959705159705,\"electricProfit\":1027.1040294840295,\"ownerShare\":3263.5520147420148,\"totalBill\":8722,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2023-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2023-12",
+    "value": "{\"month\":\"2023-12\",\"unit\":814,\"amount\":3823.42,\"updatedAt\":\"2023-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2023-12",
+    "value": "{\"month\":\"2023-12\",\"previousReading\":6797,\"currentReading\":7243,\"updatedAt\":\"2023-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-01",
+    "value": "{\"month\":\"2024-01\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":808,\"utilityBillAmount\":3793.72,\"previousReading\":7243,\"currentReading\":7653,\"usedUnit\":410,\"costPerUnit\":4.69519801980198,\"electricCharge\":2870,\"actualElectricCost\":1925.0311881188118,\"electricProfit\":944.9688118811882,\"ownerShare\":3222.484405940594,\"totalBill\":8470,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-01",
+    "value": "{\"month\":\"2024-01\",\"unit\":808,\"amount\":3793.72,\"updatedAt\":\"2024-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-01",
+    "value": "{\"month\":\"2024-01\",\"previousReading\":7243,\"currentReading\":7653,\"updatedAt\":\"2024-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-03",
+    "value": "{\"month\":\"2024-03\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":808,\"utilityBillAmount\":4006.47,\"previousReading\":8081,\"currentReading\":8486,\"usedUnit\":405,\"costPerUnit\":4.958502475247524,\"electricCharge\":2835,\"actualElectricCost\":2008.1935024752472,\"electricProfit\":826.8064975247528,\"ownerShare\":3163.4032487623763,\"totalBill\":8435,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-03",
+    "value": "{\"month\":\"2024-03\",\"unit\":808,\"amount\":4006.47,\"updatedAt\":\"2024-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-03",
+    "value": "{\"month\":\"2024-03\",\"previousReading\":8081,\"currentReading\":8486,\"updatedAt\":\"2024-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-04",
+    "value": "{\"month\":\"2024-04\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":786,\"utilityBillAmount\":3846.63,\"previousReading\":8486,\"currentReading\":8858,\"usedUnit\":372,\"costPerUnit\":4.893931297709924,\"electricCharge\":2604,\"actualElectricCost\":1820.5424427480916,\"electricProfit\":783.4575572519084,\"ownerShare\":3141.728778625954,\"totalBill\":8204,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-04",
+    "value": "{\"month\":\"2024-04\",\"unit\":786,\"amount\":3846.63,\"updatedAt\":\"2024-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-04",
+    "value": "{\"month\":\"2024-04\",\"previousReading\":8486,\"currentReading\":8858,\"updatedAt\":\"2024-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-05",
+    "value": "{\"month\":\"2024-05\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":844,\"utilityBillAmount\":4145.68,\"previousReading\":8858,\"currentReading\":9292,\"usedUnit\":434,\"costPerUnit\":4.911943127962085,\"electricCharge\":3038,\"actualElectricCost\":2131.783317535545,\"electricProfit\":906.2166824644551,\"ownerShare\":3203.1083412322278,\"totalBill\":8638,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-05",
+    "value": "{\"month\":\"2024-05\",\"unit\":844,\"amount\":4145.68,\"updatedAt\":\"2024-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-05",
+    "value": "{\"month\":\"2024-05\",\"previousReading\":8858,\"currentReading\":9292,\"updatedAt\":\"2024-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-06",
+    "value": "{\"month\":\"2024-06\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":830,\"utilityBillAmount\":4073.5,\"previousReading\":9292,\"currentReading\":9714,\"usedUnit\":422,\"costPerUnit\":4.9078313253012045,\"electricCharge\":2954,\"actualElectricCost\":2071.104819277108,\"electricProfit\":882.8951807228918,\"ownerShare\":3191.4475903614457,\"totalBill\":8554,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-06",
+    "value": "{\"month\":\"2024-06\",\"unit\":830,\"amount\":4073.5,\"updatedAt\":\"2024-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-06",
+    "value": "{\"month\":\"2024-06\",\"previousReading\":9292,\"currentReading\":9714,\"updatedAt\":\"2024-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-07",
+    "value": "{\"month\":\"2024-07\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":838,\"utilityBillAmount\":4114.74,\"previousReading\":9714,\"currentReading\":10117,\"usedUnit\":403,\"costPerUnit\":4.910190930787589,\"electricCharge\":2821,\"actualElectricCost\":1978.8069451073984,\"electricProfit\":842.1930548926016,\"ownerShare\":3171.0965274463006,\"totalBill\":8421,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-07",
+    "value": "{\"month\":\"2024-07\",\"unit\":838,\"amount\":4114.74,\"updatedAt\":\"2024-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-07",
+    "value": "{\"month\":\"2024-07\",\"previousReading\":9714,\"currentReading\":10117,\"updatedAt\":\"2024-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-08",
+    "value": "{\"month\":\"2024-08\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":781,\"utilityBillAmount\":3820.84,\"previousReading\":10117,\"currentReading\":10520,\"usedUnit\":403,\"costPerUnit\":4.892240717029449,\"electricCharge\":2821,\"actualElectricCost\":1971.573008962868,\"electricProfit\":849.426991037132,\"ownerShare\":3174.713495518566,\"totalBill\":8421,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-08-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-08",
+    "value": "{\"month\":\"2024-08\",\"unit\":781,\"amount\":3820.84,\"updatedAt\":\"2024-08-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-08",
+    "value": "{\"month\":\"2024-08\",\"previousReading\":10117,\"currentReading\":10520,\"updatedAt\":\"2024-08-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-09",
+    "value": "{\"month\":\"2024-09\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":828,\"utilityBillAmount\":4063.19,\"previousReading\":10520,\"currentReading\":10957,\"usedUnit\":437,\"costPerUnit\":4.907234299516908,\"electricCharge\":3059,\"actualElectricCost\":2144.461388888889,\"electricProfit\":914.5386111111111,\"ownerShare\":3207.2693055555555,\"totalBill\":8659,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-09",
+    "value": "{\"month\":\"2024-09\",\"unit\":828,\"amount\":4063.19,\"updatedAt\":\"2024-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-09",
+    "value": "{\"month\":\"2024-09\",\"previousReading\":10520,\"currentReading\":10957,\"updatedAt\":\"2024-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-10",
+    "value": "{\"month\":\"2024-10\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":799,\"utilityBillAmount\":3913.65,\"previousReading\":10957,\"currentReading\":11342,\"usedUnit\":385,\"costPerUnit\":4.898185231539425,\"electricCharge\":2695,\"actualElectricCost\":1885.8013141426786,\"electricProfit\":809.1986858573214,\"ownerShare\":3154.599342928661,\"totalBill\":8295,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-10",
+    "value": "{\"month\":\"2024-10\",\"unit\":799,\"amount\":3913.65,\"updatedAt\":\"2024-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-10",
+    "value": "{\"month\":\"2024-10\",\"previousReading\":10957,\"currentReading\":11342,\"updatedAt\":\"2024-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-11",
+    "value": "{\"month\":\"2024-11\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":738,\"utilityBillAmount\":3599.12,\"previousReading\":11342,\"currentReading\":11746,\"usedUnit\":404,\"costPerUnit\":4.876856368563685,\"electricCharge\":2828,\"actualElectricCost\":1970.2499728997288,\"electricProfit\":857.7500271002712,\"ownerShare\":3178.8750135501355,\"totalBill\":8428,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-11",
+    "value": "{\"month\":\"2024-11\",\"unit\":738,\"amount\":3599.12,\"updatedAt\":\"2024-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-11",
+    "value": "{\"month\":\"2024-11\",\"previousReading\":11342,\"currentReading\":11746,\"updatedAt\":\"2024-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2024-12",
+    "value": "{\"month\":\"2024-12\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":828,\"utilityBillAmount\":4063.19,\"previousReading\":11746,\"currentReading\":12180,\"usedUnit\":434,\"costPerUnit\":4.907234299516908,\"electricCharge\":3038,\"actualElectricCost\":2129.739685990338,\"electricProfit\":908.2603140096621,\"ownerShare\":3204.130157004831,\"totalBill\":8638,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2024-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2024-12",
+    "value": "{\"month\":\"2024-12\",\"unit\":828,\"amount\":4063.19,\"updatedAt\":\"2024-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2024-12",
+    "value": "{\"month\":\"2024-12\",\"previousReading\":11746,\"currentReading\":12180,\"updatedAt\":\"2024-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-01",
+    "value": "{\"month\":\"2025-01\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":796,\"utilityBillAmount\":3898.18,\"previousReading\":12180,\"currentReading\":12560,\"usedUnit\":380,\"costPerUnit\":4.897211055276382,\"electricCharge\":2660,\"actualElectricCost\":1860.9402010050253,\"electricProfit\":799.0597989949747,\"ownerShare\":3149.5298994974873,\"totalBill\":8260,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-01",
+    "value": "{\"month\":\"2025-01\",\"unit\":796,\"amount\":3898.18,\"updatedAt\":\"2025-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-01",
+    "value": "{\"month\":\"2025-01\",\"previousReading\":12180,\"currentReading\":12560,\"updatedAt\":\"2025-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-02",
+    "value": "{\"month\":\"2025-02\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":752,\"utilityBillAmount\":3647.17,\"previousReading\":12560,\"currentReading\":12979,\"usedUnit\":419,\"costPerUnit\":4.849960106382979,\"electricCharge\":2933,\"actualElectricCost\":2032.1332845744682,\"electricProfit\":900.8667154255318,\"ownerShare\":3200.433357712766,\"totalBill\":8533,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-02-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-02",
+    "value": "{\"month\":\"2025-02\",\"unit\":752,\"amount\":3647.17,\"updatedAt\":\"2025-02-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-02",
+    "value": "{\"month\":\"2025-02\",\"previousReading\":12560,\"currentReading\":12979,\"updatedAt\":\"2025-02-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-03",
+    "value": "{\"month\":\"2025-03\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":814,\"utilityBillAmount\":3964.86,\"previousReading\":12979,\"currentReading\":13367,\"usedUnit\":388,\"costPerUnit\":4.870835380835381,\"electricCharge\":2716,\"actualElectricCost\":1889.8841277641277,\"electricProfit\":826.1158722358723,\"ownerShare\":3163.057936117936,\"totalBill\":8316,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-03",
+    "value": "{\"month\":\"2025-03\",\"unit\":814,\"amount\":3964.86,\"updatedAt\":\"2025-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-03",
+    "value": "{\"month\":\"2025-03\",\"previousReading\":12979,\"currentReading\":13367,\"updatedAt\":\"2025-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-04",
+    "value": "{\"month\":\"2025-04\",\"baseRentAmount\":5500,\"rentDiscount\":0,\"netRentAmount\":5500,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":739,\"utilityBillAmount\":3580.56,\"previousReading\":13367,\"currentReading\":13756,\"usedUnit\":389,\"costPerUnit\":4.845142083897159,\"electricCharge\":2723,\"actualElectricCost\":1884.7602706359946,\"electricProfit\":838.2397293640054,\"ownerShare\":3169.1198646820026,\"totalBill\":8323,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-04",
+    "value": "{\"month\":\"2025-04\",\"unit\":739,\"amount\":3580.56,\"updatedAt\":\"2025-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-04",
+    "value": "{\"month\":\"2025-04\",\"previousReading\":13367,\"currentReading\":13756,\"updatedAt\":\"2025-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-05",
+    "value": "{\"month\":\"2025-05\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":878,\"utilityBillAmount\":4292.81,\"previousReading\":13756,\"currentReading\":14193,\"usedUnit\":437,\"costPerUnit\":4.889305239179955,\"electricCharge\":3059,\"actualElectricCost\":2136.6263895216402,\"electricProfit\":922.3736104783598,\"ownerShare\":2961.18680523918,\"totalBill\":8159,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-05",
+    "value": "{\"month\":\"2025-05\",\"unit\":878,\"amount\":4292.81,\"updatedAt\":\"2025-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-05",
+    "value": "{\"month\":\"2025-05\",\"previousReading\":13756,\"currentReading\":14193,\"updatedAt\":\"2025-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-06",
+    "value": "{\"month\":\"2025-06\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":837,\"utilityBillAmount\":3930.47,\"previousReading\":14193,\"currentReading\":14622,\"usedUnit\":429,\"costPerUnit\":4.695902031063321,\"electricCharge\":3003,\"actualElectricCost\":2014.5419713261647,\"electricProfit\":988.4580286738353,\"ownerShare\":2994.2290143369178,\"totalBill\":8103,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-06",
+    "value": "{\"month\":\"2025-06\",\"unit\":837,\"amount\":3930.47,\"updatedAt\":\"2025-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-06",
+    "value": "{\"month\":\"2025-06\",\"previousReading\":14193,\"currentReading\":14622,\"updatedAt\":\"2025-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-07",
+    "value": "{\"month\":\"2025-07\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":853,\"utilityBillAmount\":4009.55,\"previousReading\":14622,\"currentReading\":14997,\"usedUnit\":375,\"costPerUnit\":4.70052754982415,\"electricCharge\":2625,\"actualElectricCost\":1762.6978311840562,\"electricProfit\":862.3021688159438,\"ownerShare\":2931.151084407972,\"totalBill\":7725,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-07",
+    "value": "{\"month\":\"2025-07\",\"unit\":853,\"amount\":4009.55,\"updatedAt\":\"2025-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-07",
+    "value": "{\"month\":\"2025-07\",\"previousReading\":14622,\"currentReading\":14997,\"updatedAt\":\"2025-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-08",
+    "value": "{\"month\":\"2025-08\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":802,\"utilityBillAmount\":3757.49,\"previousReading\":14997,\"currentReading\":15381,\"usedUnit\":384,\"costPerUnit\":4.6851496259351615,\"electricCharge\":2688,\"actualElectricCost\":1799.0974563591021,\"electricProfit\":888.9025436408979,\"ownerShare\":2944.4512718204487,\"totalBill\":7788,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-08-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-08",
+    "value": "{\"month\":\"2025-08\",\"unit\":802,\"amount\":3757.49,\"updatedAt\":\"2025-08-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-08",
+    "value": "{\"month\":\"2025-08\",\"previousReading\":14997,\"currentReading\":15381,\"updatedAt\":\"2025-08-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-09",
+    "value": "{\"month\":\"2025-09\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":872,\"utilityBillAmount\":4103.45,\"previousReading\":15381,\"currentReading\":15796,\"usedUnit\":415,\"costPerUnit\":4.705791284403669,\"electricCharge\":2905,\"actualElectricCost\":1952.9033830275228,\"electricProfit\":952.0966169724772,\"ownerShare\":2976.0483084862385,\"totalBill\":8005,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-09",
+    "value": "{\"month\":\"2025-09\",\"unit\":872,\"amount\":4103.45,\"updatedAt\":\"2025-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-09",
+    "value": "{\"month\":\"2025-09\",\"previousReading\":15381,\"currentReading\":15796,\"updatedAt\":\"2025-09-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-10",
+    "value": "{\"month\":\"2025-10\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":878,\"utilityBillAmount\":4095.52,\"previousReading\":15796,\"currentReading\":16230,\"usedUnit\":434,\"costPerUnit\":4.6646013667425965,\"electricCharge\":3038,\"actualElectricCost\":2024.4369931662868,\"electricProfit\":1013.5630068337132,\"ownerShare\":3006.7815034168566,\"totalBill\":8138,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-10",
+    "value": "{\"month\":\"2025-10\",\"unit\":878,\"amount\":4095.52,\"updatedAt\":\"2025-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-10",
+    "value": "{\"month\":\"2025-10\",\"previousReading\":15796,\"currentReading\":16230,\"updatedAt\":\"2025-10-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-11",
+    "value": "{\"month\":\"2025-11\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":847,\"utilityBillAmount\":3943.65,\"previousReading\":16230,\"currentReading\":16630,\"usedUnit\":400,\"costPerUnit\":4.656021251475797,\"electricCharge\":2800,\"actualElectricCost\":1862.4085005903187,\"electricProfit\":937.5914994096813,\"ownerShare\":2968.7957497048405,\"totalBill\":7900,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-11",
+    "value": "{\"month\":\"2025-11\",\"unit\":847,\"amount\":3943.65,\"updatedAt\":\"2025-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-11",
+    "value": "{\"month\":\"2025-11\",\"previousReading\":16230,\"currentReading\":16630,\"updatedAt\":\"2025-11-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2025-12",
+    "value": "{\"month\":\"2025-12\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":853,\"utilityBillAmount\":3973.04,\"previousReading\":16630,\"currentReading\":17039,\"usedUnit\":409,\"costPerUnit\":4.657725674091442,\"electricCharge\":2863,\"actualElectricCost\":1905.0098007033998,\"electricProfit\":957.9901992966002,\"ownerShare\":2978.9950996483003,\"totalBill\":7963,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2025-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2025-12",
+    "value": "{\"month\":\"2025-12\",\"unit\":853,\"amount\":3973.04,\"updatedAt\":\"2025-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2025-12",
+    "value": "{\"month\":\"2025-12\",\"previousReading\":16630,\"currentReading\":17039,\"updatedAt\":\"2025-12-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-01",
+    "value": "{\"month\":\"2026-01\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":793,\"utilityBillAmount\":3679.08,\"previousReading\":17039,\"currentReading\":17474,\"usedUnit\":435,\"costPerUnit\":4.639445145018915,\"electricCharge\":3045,\"actualElectricCost\":2018.1586380832282,\"electricProfit\":1026.8413619167718,\"ownerShare\":3013.4206809583857,\"totalBill\":8145,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-01",
+    "value": "{\"month\":\"2026-01\",\"unit\":793,\"amount\":3679.08,\"updatedAt\":\"2026-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-01",
+    "value": "{\"month\":\"2026-01\",\"previousReading\":17039,\"currentReading\":17474,\"updatedAt\":\"2026-01-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-02",
+    "value": "{\"month\":\"2026-02\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":852,\"utilityBillAmount\":3913.44,\"previousReading\":17474,\"currentReading\":17856,\"usedUnit\":382,\"costPerUnit\":4.593239436619719,\"electricCharge\":2674,\"actualElectricCost\":1754.6174647887326,\"electricProfit\":919.3825352112674,\"ownerShare\":2959.6912676056336,\"totalBill\":7774,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-02-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-02",
+    "value": "{\"month\":\"2026-02\",\"unit\":852,\"amount\":3913.44,\"updatedAt\":\"2026-02-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-02",
+    "value": "{\"month\":\"2026-02\",\"previousReading\":17474,\"currentReading\":17856,\"updatedAt\":\"2026-02-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-03",
+    "value": "{\"month\":\"2026-03\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":920,\"utilityBillAmount\":4242.23,\"previousReading\":17856,\"currentReading\":18249,\"usedUnit\":393,\"costPerUnit\":4.611119565217391,\"electricCharge\":2751,\"actualElectricCost\":1812.1699891304345,\"electricProfit\":938.8300108695655,\"ownerShare\":2969.415005434783,\"totalBill\":7851,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-03",
+    "value": "{\"month\":\"2026-03\",\"unit\":920,\"amount\":4242.23,\"updatedAt\":\"2026-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-03",
+    "value": "{\"month\":\"2026-03\",\"previousReading\":17856,\"currentReading\":18249,\"updatedAt\":\"2026-03-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-04",
+    "value": "{\"month\":\"2026-04\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":834,\"utilityBillAmount\":3826.41,\"previousReading\":18249,\"currentReading\":18642,\"usedUnit\":393,\"costPerUnit\":4.588021582733813,\"electricCharge\":2751,\"actualElectricCost\":1803.0924820143885,\"electricProfit\":947.9075179856115,\"ownerShare\":2973.953758992806,\"totalBill\":7851,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-04",
+    "value": "{\"month\":\"2026-04\",\"unit\":834,\"amount\":3826.41,\"updatedAt\":\"2026-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-04",
+    "value": "{\"month\":\"2026-04\",\"previousReading\":18249,\"currentReading\":18642,\"updatedAt\":\"2026-04-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-05",
+    "value": "{\"month\":\"2026-05\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":953,\"utilityBillAmount\":4401.8,\"previousReading\":18642,\"currentReading\":19073,\"usedUnit\":431,\"costPerUnit\":4.618887722980063,\"electricCharge\":3017,\"actualElectricCost\":1990.7406086044073,\"electricProfit\":1026.2593913955927,\"ownerShare\":3013.1296956977963,\"totalBill\":8117,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-05",
+    "value": "{\"month\":\"2026-05\",\"unit\":953,\"amount\":4401.8,\"updatedAt\":\"2026-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-05",
+    "value": "{\"month\":\"2026-05\",\"previousReading\":18642,\"currentReading\":19073,\"updatedAt\":\"2026-05-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-06",
+    "value": "{\"month\":\"2026-06\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":892,\"utilityBillAmount\":4168.99,\"previousReading\":19073,\"currentReading\":19481,\"usedUnit\":408,\"costPerUnit\":4.6737556053811655,\"electricCharge\":2856,\"actualElectricCost\":1906.8922869955156,\"electricProfit\":949.1077130044844,\"ownerShare\":2974.553856502242,\"totalBill\":7956,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-06",
+    "value": "{\"month\":\"2026-06\",\"unit\":892,\"amount\":4168.99,\"updatedAt\":\"2026-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-06",
+    "value": "{\"month\":\"2026-06\",\"previousReading\":19073,\"currentReading\":19481,\"updatedAt\":\"2026-06-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "monthly_statement:2026-07",
+    "value": "{\"month\":\"2026-07\",\"baseRentAmount\":5500,\"rentDiscount\":500,\"netRentAmount\":5000,\"waterAmount\":100,\"electricSellRate\":7,\"utilityBillUnit\":939,\"utilityBillAmount\":4399.52,\"previousReading\":19481,\"currentReading\":19916,\"usedUnit\":435,\"costPerUnit\":4.6853248136315235,\"electricCharge\":3045,\"actualElectricCost\":2038.1162939297128,\"electricProfit\":1006.8837060702872,\"ownerShare\":3003.4418530351436,\"totalBill\":8145,\"paymentStatus\":\"paid\",\"bankAccount\":\"\",\"updatedAt\":\"2026-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "utility_bill:2026-07",
+    "value": "{\"month\":\"2026-07\",\"unit\":939,\"amount\":4399.52,\"updatedAt\":\"2026-07-28T12:00:00.000Z\"}"
+  },
+  {
+    "key": "meter_reading:2026-07",
+    "value": "{\"month\":\"2026-07\",\"previousReading\":19481,\"currentReading\":19916,\"updatedAt\":\"2026-07-28T12:00:00.000Z\"}"
+  }
+]
