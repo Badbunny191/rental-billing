@@ -488,21 +488,26 @@
         </div>
       </div>
 
-      <!-- ปุ่มส่งงานทาง LINE (Dashboard Actions) -->
+      <!-- 5. Dashboard Actions (ส่งยอดประจำเดือนทาง LINE) -->
       <div class="card p-3 mb-3 bg-white border-0 shadow-sm no-print">
         <span class="text-muted small fw-bold mb-2 d-block">ส่งยอดประจำเดือนทาง LINE</span>
         <div class="row g-2">
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-6 col-lg-3">
             <button class="btn btn-success btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="copyTenantBillLine()">
               📋 คัดลอกข้อความส่งผู้เช่า
             </button>
           </div>
-          <div class="col-12 col-md-4">
-            <button class="btn btn-info text-white btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="exportShareCardPNG()">
-              🖼️ บันทึกเป็นรูปภาพ
+          <div class="col-12 col-md-6 col-lg-3">
+            <button class="btn btn-primary btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="downloadShareCardPNG()">
+              📥 ดาวน์โหลดรูปสำหรับส่ง LINE
             </button>
           </div>
-          <div class="col-12 col-md-4">
+          <div class="col-12 col-md-6 col-lg-3">
+            <button class="btn btn-info text-white btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="shareCardImage()">
+              📤 แชร์รูปผ่าน LINE
+            </button>
+          </div>
+          <div class="col-12 col-md-6 col-lg-3">
             <button class="btn btn-outline-success btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="copyOwnerSummaryLine()">
               📋 คัดลอกสรุปเจ้าของ
             </button>
@@ -757,7 +762,7 @@
   </div>
 </div>
 
-<!-- Mobile-first Share Card Redesign (PNG Layout ตามข้อกำหนด 1) -->
+<!-- 1. PNG Share Card Redesign (Layout SPRINT 1.2.1 ตามข้อ 1) -->
 <div id="mobileShareCardContainer" style="position: fixed; left: -9999px; top: 0; width: 440px; background: #ffffff; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box;">
   <div id="mobileShareCard" style="background: #ffffff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #1e293b; box-sizing: border-box;">
     
@@ -794,15 +799,23 @@
 
     <div style="border-top: 1.5px dashed #cbd5e1; margin: 14px 0;"></div>
 
-    <!-- สรุปค่าไฟฟ้า -->
-    <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">สรุปค่าไฟฟ้า</div>
-    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; margin-bottom: 4px;">
-      <span>มิเตอร์</span>
-      <span id="cardMeterRange" style="font-weight: 500;">- → -</span>
+    <!-- สรุปค่าไฟฟ้า (มิเตอร์เดือนก่อน, มิเตอร์ปัจจุบัน, ใช้ไฟ, รวมค่าไฟฟ้า) -->
+    <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">สรุปค่าไฟฟ้า</div>
+    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; padding: 3px 0;">
+      <span>มิเตอร์เดือนก่อน</span>
+      <span id="cardPrevMeter" style="font-weight: 600; color: #334155;">- หน่วย</span>
     </div>
-    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; margin-bottom: 6px;">
-      <span id="cardMeterCalc">ใช้ไฟ - หน่วย × - บาท</span>
-      <span id="cardElectricCharge" style="font-weight: 700; color: #1e293b; font-size: 15px;">0 บาท</span>
+    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; padding: 3px 0;">
+      <span>มิเตอร์ปัจจุบัน</span>
+      <span id="cardCurrMeter" style="font-weight: 600; color: #334155;">- หน่วย</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; padding: 3px 0;">
+      <span id="cardUsedRate">ใช้ไฟ - หน่วย × - บาท/หน่วย</span>
+      <span id="cardEmptySpan"></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px; padding: 4px 0 0 0;">
+      <span style="font-weight: 600; color: #0f172a;">รวมค่าไฟฟ้า</span>
+      <span id="cardElectricCharge" style="font-weight: 700; color: #1e293b;">0 บาท</span>
     </div>
 
     <div style="border-top: 1.5px dashed #cbd5e1; margin: 14px 0;"></div>
@@ -917,7 +930,6 @@
     });
 
     yearCol.innerHTML = "";
-    // ช่วงปี พ.ศ. 2566 ถึง 2575 (ค.ศ. 2023 - 2032)
     for (let y = 2023; y <= 2032; y++) {
       const div = document.createElement("div");
       div.className = "ios-wheel-item";
@@ -1078,7 +1090,7 @@
     }
   }
 
-  // 3. COPY LINE ผู้เช่า (ใช้ Format และลำดับเดียวกับ PNG Share Card ตามข้อ 3)
+  // 3. COPY LINE ผู้เช่า (ตรงกับ PNG Share Card SPRINT 1.2.1 ตามข้อ 3)
   function copyTenantBillLine() {
     if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
       alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
@@ -1101,6 +1113,8 @@
 
 วันที่ออกบิล ${issueDate}
 
+🟢 ชำระแล้ว
+
 ────────────────────
 
 ค่าเช่า ${r.baseRentAmount.toLocaleString("th-TH")} บาท
@@ -1115,11 +1129,13 @@
 
 สรุปค่าไฟฟ้า
 
-มิเตอร์ ${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}
+มิเตอร์เดือนก่อน ${r.previousReading.toLocaleString("th-TH")} หน่วย
 
-ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท
+มิเตอร์ปัจจุบัน ${r.currentReading.toLocaleString("th-TH")} หน่วย
 
-${r.electricCharge.toLocaleString("th-TH")} บาท
+ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท/หน่วย
+
+รวมค่าไฟฟ้า ${r.electricCharge.toLocaleString("th-TH")} บาท
 
 ────────────────────
 
@@ -1134,7 +1150,7 @@ ${paymentChannelText}`;
     copyToClipboard(text, "คัดลอกข้อความส่งผู้เช่า (LINE) เรียบร้อยแล้ว!");
   }
 
-  // 4. COPY LINE เจ้าของ (แทนข้อความเดิมทั้งหมดตาม Format ข้อ 4)
+  // 4. COPY LINE เจ้าของ (ปัดเศษเฉพาะตอนแสดงผล ตามข้อ 4)
   function copyOwnerSummaryLine() {
     if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
       alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
@@ -1164,13 +1180,13 @@ ${paymentChannelText}`;
 
 รายรับจากผู้เช่า
 
-${r.totalBill.toLocaleString("th-TH")} บาท
+${Math.round(r.totalBill).toLocaleString("th-TH")} บาท
 
 ────────────────────
 
 ค่าไฟ
 
-เรียกเก็บ ${r.electricCharge.toLocaleString("th-TH")} บาท
+เรียกเก็บ ${Math.round(r.electricCharge).toLocaleString("th-TH")} บาท
 
 ต้นทุนจริง ${Math.round(r.actualElectricCost).toLocaleString("th-TH")} บาท
 
@@ -1993,14 +2009,8 @@ ${owner2Desc}
     modal.show();
   }
 
-  // 1. PNG SHARE CARD REDESIGN (สร้างภาพการ์ดตามข้อกำหนด 1)
-  async function exportShareCardPNG() {
-    if (!latestStatement) {
-      alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวดนี้");
-      return;
-    }
-    const r = latestStatement;
-
+  // 1 & 6. ฟังก์ชันอัปเดตข้อมูล Share Card ลง DOM สำหรับ Render
+  function populateShareCardDOM(r) {
     document.getElementById("cardMonth").innerText = `ประจำเดือน ${formatThaiMonth(r.month)}`;
     document.getElementById("cardIssueDate").innerText = `วันที่ออกบิล ${formatThaiDate(r.updatedAt || new Date().toISOString())}`;
 
@@ -2021,8 +2031,9 @@ ${owner2Desc}
     document.getElementById("cardNetRent").innerText = `${r.netRentAmount.toLocaleString("th-TH")} บาท`;
     document.getElementById("cardWater").innerText = `${r.waterAmount.toLocaleString("th-TH")} บาท`;
 
-    document.getElementById("cardMeterRange").innerText = `${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}`;
-    document.getElementById("cardMeterCalc").innerText = `ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท`;
+    document.getElementById("cardPrevMeter").innerText = `${r.previousReading.toLocaleString("th-TH")} หน่วย`;
+    document.getElementById("cardCurrMeter").innerText = `${r.currentReading.toLocaleString("th-TH")} หน่วย`;
+    document.getElementById("cardUsedRate").innerText = `ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท/หน่วย`;
     document.getElementById("cardElectricCharge").innerText = `${r.electricCharge.toLocaleString("th-TH")} บาท`;
 
     document.getElementById("cardTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH")} บาท`;
@@ -2038,18 +2049,71 @@ ${owner2Desc}
         <div style="white-space: pre-line; color: #475569;">${bankInfo}</div>
       `;
     }
+  }
 
+  // สร้างภาพ Canvas จาก DOM Share Card
+  async function generateShareCardCanvas() {
+    if (!latestStatement) {
+      alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวดนี้");
+      return null;
+    }
+    populateShareCardDOM(latestStatement);
     const cardElement = document.getElementById("mobileShareCard");
+    return await html2canvas(cardElement, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+  }
+
+  // ดาวน์โหลดรูปภาพ PNG ลงเครื่อง
+  async function downloadShareCardPNG() {
     try {
       showToast("กำลังสร้างรูปภาพ...");
-      const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const canvas = await generateShareCardCanvas();
+      if (!canvas) return;
+
       const link = document.createElement("a");
-      link.download = `bill-${r.month}.png`;
+      link.download = `bill-${latestStatement.month}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      showToast("บันทึกรูปภาพสำเร็จ!");
+      showToast("ดาวน์โหลดรูปภาพสำเร็จ!");
     } catch (e) {
       alert("ไม่สามารถสร้างรูปภาพได้: " + e.message);
+    }
+  }
+
+  // 6. แชร์รูปผ่าน Web Share API (Fallback เป็น Download PNG หากไม่รองรับ)
+  async function shareCardImage() {
+    try {
+      showToast("กำลังเตรียมรูปภาพ...");
+      const canvas = await generateShareCardCanvas();
+      if (!canvas) return;
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          downloadShareCardPNG();
+          return;
+        }
+
+        const file = new File([blob], `bill-${latestStatement.month}.png`, { type: "image/png" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: `ใบแจ้งค่าเช่า-${latestStatement.month}`,
+              text: `ใบแจ้งค่าเช่าและสาธารณูปโภค ประจำเดือน ${formatThaiMonth(latestStatement.month)}`,
+              files: [file]
+            });
+            showToast("แชร์รูปภาพสำเร็จ!");
+          } catch (err) {
+            if (err.name !== "AbortError") {
+              downloadShareCardPNG();
+            }
+          }
+        } else {
+          // Fallback สำหรับเบราว์เซอร์ที่ไม่รองรับ Web Share API แบบแชร์ไฟล์
+          downloadShareCardPNG();
+        }
+      }, "image/png");
+    } catch (e) {
+      downloadShareCardPNG();
     }
   }
 </script>
