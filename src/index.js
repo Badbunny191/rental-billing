@@ -379,6 +379,7 @@ export default {
           ...statementCalc,
           paymentMethod: settings.paymentMethod || "bank",
           bankAccount: settings.bankAccount || "",
+          waterReceiver: settings.waterReceiver || "owner2",
           paymentStatus,
           paidAt,
           updatedAt: new Date().toISOString()
