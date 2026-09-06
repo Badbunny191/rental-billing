@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบคำนวณและแบ่งรายได้บ้านเช่า</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body {
       font-size: 1.15rem;
@@ -455,32 +456,32 @@
         </div>
       </div>
 
-      <!-- 7. Owner Revenue Section (ส่วนแบ่งป๊า และ ส่วนแบ่งอากู้) -->
+      <!-- 7. Owner Revenue Section (ส่วนแบ่งเจ้าของคนที่ 1 และ คนที่ 2) -->
       <div class="row g-3 mb-3">
-        <!-- ป๊า -->
+        <!-- เจ้าของคนที่ 1 -->
         <div class="col-12 col-md-6">
           <div class="card p-3 bg-white border-success border-2 shadow-sm">
-            <h5 class="fw-bold text-success mb-2">👴 ส่วนแบ่งป๊า</h5>
+            <h5 class="fw-bold text-success mb-2" id="owner1TitleHeader">👴 ส่วนแบ่งป๊า</h5>
             <div class="small text-muted mb-1">ค่าเช่าสุทธิ ÷ 2: <span id="paRentShareText">-</span></div>
             <div class="small text-muted mb-2">กำไรค่าไฟ ÷ 2: <span id="paProfitShareText">-</span></div>
             <div class="bill-divider"></div>
             <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-dark">💵 ป๊าได้รับ</span>
+              <span class="fw-bold text-dark" id="owner1LabelText">💵 ป๊าได้รับ</span>
               <span class="stat-number text-success" id="dashOwnerShare">0 บาท</span>
             </div>
           </div>
         </div>
 
-        <!-- อากู้ -->
+        <!-- เจ้าของคนที่ 2 -->
         <div class="col-12 col-md-6">
           <div class="card p-3 bg-white border-info border-2 shadow-sm">
-            <h5 class="fw-bold text-info mb-2">👨 ส่วนแบ่งอากู้</h5>
+            <h5 class="fw-bold text-info mb-2" id="owner2TitleHeader">👨 ส่วนแบ่งอากู้</h5>
             <div class="small text-muted mb-1">ค่าเช่าสุทธิ ÷ 2: <span id="akuRentShareText">-</span></div>
             <div class="small text-muted mb-1">กำไรค่าไฟ ÷ 2: <span id="akuProfitShareText">-</span></div>
             <div class="small text-muted mb-2">ค่าน้ำ: <span id="akuWaterText">+100 บาท</span></div>
             <div class="bill-divider"></div>
             <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-dark">💵 อากู้ได้รับ</span>
+              <span class="fw-bold text-dark" id="owner2LabelText">💵 อากู้ได้รับ</span>
               <span class="stat-number text-info" id="akuTotalShare">0 บาท</span>
             </div>
           </div>
@@ -556,7 +557,7 @@
             ℹ️ ระบบอ่านรูปภาพอัตโนมัติอยู่ระหว่างพัฒนา — สามารถกรอกตัวเลขหน้าปัดลงในช่องด้านล่างได้ทันที
           </div>
         </div>
-      <div class="mb-3">
+        <div class="mb-3">
           <div class="d-flex justify-content-between align-items-center">
             <label class="form-label fw-bold m-0">เลขมิเตอร์เดือนก่อน (หน่วยเต็ม)</label>
             <span class="badge bg-secondary" id="autoFillMeterBadge">ระบบค้นหาอัตโนมัติ</span>
@@ -601,34 +602,10 @@
       <div class="card p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4 class="fw-bold m-0">ประวัติการคำนวณย้อนหลัง</h4>
-          <span class="text-muted small">แสดงสูงสุด 12 เดือนล่าสุด</span>
+          <span class="text-muted small">จัดกลุ่มตามปี พ.ศ.</span>
         </div>
 
-        <!-- Desktop View (Table) -->
-        <div class="table-responsive d-none d-md-block">
-          <table class="table table-bordered align-middle text-center">
-            <thead class="table-light">
-              <tr>
-                <th>เดือน</th>
-                <th>มิเตอร์ก่อน-หลัง</th>
-                <th>หน่วยที่ใช้</th>
-                <th>ต้นทุน/หน่วย</th>
-                <th>ยอดรวมผู้เช่า</th>
-                <th>ส่วนแบ่งเจ้าของ</th>
-                <th>สถานะ</th>
-                <th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBodyDesktop">
-              <tr>
-                <td colspan="8" class="text-center text-muted">กำลังโหลดข้อมูล...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Mobile View (Card Layout) -->
-        <div class="d-block d-md-none" id="historyCardsMobile">
+        <div class="accordion" id="historyAccordion">
           <div class="text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
         </div>
       </div>
@@ -657,6 +634,23 @@
         <div class="mb-3">
           <label class="form-label fw-bold">ข้อมูลบัญชีรับชำระเงิน (แสดงในบิลและข้อความ LINE)</label>
           <input type="text" class="form-control" id="setBankAccount" placeholder="เช่น ธนาคารกสิกรไทย 123-4-56789-0 นายเสรี">
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-bold">ชื่อเจ้าของคนที่ 1 (owner1Name)</label>
+            <input type="text" class="form-control" id="setOwner1Name" placeholder="เช่น ป๊า">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-bold">ชื่อเจ้าของคนที่ 2 (owner2Name)</label>
+            <input type="text" class="form-control" id="setOwner2Name" placeholder="เช่น อากู้">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">ผู้รับค่าน้ำ (waterReceiver)</label>
+          <select class="form-select" id="setWaterReceiver">
+            <option value="owner2">เจ้าของคนที่ 2</option>
+            <option value="owner1">เจ้าของคนที่ 1</option>
+          </select>
         </div>
         <button class="btn btn-primary btn-lg w-100 mt-2 touch-target" id="btnSaveSettings" onclick="saveSettings()">
           บันทึกการตั้งค่า
@@ -711,10 +705,6 @@
             <span id="invUsedUnits">0 หน่วย</span>
           </div>
           <div class="list-group-item d-flex justify-content-between">
-            <span>ต้นทุนไฟหลวงต่อหน่วย</span>
-            <span id="invCostPerUnit">0.00 บาท/หน่วย</span>
-          </div>
-          <div class="list-group-item d-flex justify-content-between">
             <span>ค่าไฟเรียกเก็บ (<span id="invUsedUnitsRate">0</span> หน่วย @ <span id="invRate">0</span> บาท)</span>
             <span id="invElectricCharge">0.00 บาท</span>
           </div>
@@ -735,8 +725,49 @@
       </div>
       <div class="modal-footer no-print">
         <button type="button" class="btn btn-secondary btn-lg touch-target" data-bs-dismiss="modal">ปิด</button>
+        <button type="button" class="btn btn-info text-white btn-lg touch-target" onclick="exportShareCardPNG()">📷 บันทึกเป็นรูปภาพ</button>
         <button type="button" class="btn btn-success btn-lg touch-target" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile-first Share Card (ใช้จับภาพเป็น PNG ส่ง LINE ซ่อนจากการแสดงผลปกติ) -->
+<div id="mobileShareCardContainer" style="position: fixed; left: -9999px; top: 0; width: 420px; background: #f4f6f9; padding: 16px; font-family: sans-serif;">
+  <div id="mobileShareCard" style="background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #dee2e6;">
+    <div style="text-align: center; border-bottom: 2px solid #0d6efd; padding-bottom: 12px; margin-bottom: 16px;">
+      <h3 style="margin: 0; color: #0d6efd; font-weight: bold; font-size: 22px;">🏡 ใบแจ้งค่าเช่าและสาธารณูปโภค</h3>
+      <div id="cardMonth" style="color: #495057; font-weight: bold; font-size: 16px; margin-top: 6px;">-</div>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 16px;">
+      <span style="color: #6c757d;">ค่าเช่าสุทธิ</span>
+      <strong id="cardNetRent" style="color: #212529;">0.00 บาท</strong>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 16px;">
+      <span style="color: #6c757d;">ค่าน้ำ</span>
+      <strong id="cardWater" style="color: #212529;">0.00 บาท</strong>
+    </div>
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #e9ecef;">
+      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #6c757d; margin-bottom: 4px;">
+        <span>มิเตอร์:</span>
+        <span id="cardMeterRange">- → -</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #6c757d; margin-bottom: 4px;">
+        <span>ใช้ไฟ:</span>
+        <span id="cardMeterCalc">- หน่วย</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 16px; border-top: 1px dashed #ced4da; padding-top: 6px;">
+        <span style="color: #212529; font-weight: bold;">ค่าไฟฟ้า:</span>
+        <strong id="cardElectricCharge" style="color: #212529;">0.00 บาท</strong>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #212529; padding-top: 12px; margin-top: 12px;">
+      <span style="font-size: 18px; font-weight: bold; color: #212529;">💰 ยอดรวมที่ต้องชำระ</span>
+      <span id="cardTotalBill" style="font-size: 24px; font-weight: bold; color: #0d6efd;">0.00 บาท</span>
+    </div>
+    <div style="margin-top: 16px; background: #e7f1ff; border-radius: 8px; padding: 12px;">
+      <div style="font-size: 13px; font-weight: bold; color: #084298; margin-bottom: 4px;">บัญชีรับชำระ:</div>
+      <div id="cardBankAccount" style="font-size: 14px; color: #052c65; white-space: pre-line;">-</div>
     </div>
   </div>
 </div>
@@ -748,7 +779,10 @@
     rentDiscount: 500,
     waterAmount: 100,
     electricSellRate: 7,
-    bankAccount: ""
+    bankAccount: "",
+    owner1Name: "ป๊า",
+    owner2Name: "อากู้",
+    waterReceiver: "owner2"
   };
 
   // State ปัจจุบัน
@@ -924,7 +958,7 @@
     }
   }
 
-async function updateMonthViews() {
+  async function updateMonthViews() {
     document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
     document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
 
@@ -936,13 +970,14 @@ async function updateMonthViews() {
     await loadMeterReadingForMonth();
     await autoFillPreviousMeter();
 
-    // ซิงค์สถานะ Dashboard กับงวดที่เลือก หากยังไม่มีข้อมูลให้ส่ง null
+    // ซิงค์สถานะ Dashboard กับงวดที่เลือก หากมีข้อมูลใน Cache ให้ render ทันที หากไม่มีให้เป็น null
     if (statementCache[currentSelectedMonth]) {
       renderDashboard(statementCache[currentSelectedMonth]);
     } else {
       renderDashboard(null);
     }
   }
+
   // 2. Auto-Fill เลขมิเตอร์เดือนก่อนหน้า
   async function autoFillPreviousMeter() {
     const currPrevVal = document.getElementById("meterPrevInput").value;
@@ -1016,7 +1051,7 @@ ${bankAccount}
     copyToClipboard(text, "คัดลอกบิลส่งผู้เช่า (LINE) เรียบร้อยแล้ว!");
   }
 
-  // 4. ปุ่มคัดลอกข้อความสรุปส่วนแบ่งเงินให้ป๊าและอากู้
+  // 4. ปุ่มคัดลอกข้อความสรุปส่วนแบ่งเงินให้เจ้าของทั้งสองคน
   function copyOwnerSummaryLine() {
     if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
       alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
@@ -1024,23 +1059,30 @@ ${bankAccount}
     }
     const r = latestStatement;
     const thaiMonth = formatThaiMonth(r.month);
-    const paShareRounded = Math.round(r.ownerShare);
-    const akuShareRounded = Math.round(r.ownerShare + r.waterAmount);
+    const owner1 = currentSettings.owner1Name || "ป๊า";
+    const owner2 = currentSettings.owner2Name || "อากู้";
+    const receiver = currentSettings.waterReceiver || "owner2";
+
+    const owner1Water = receiver === "owner1" ? r.waterAmount : 0;
+    const owner2Water = receiver === "owner2" ? r.waterAmount : 0;
+
+    const owner1Total = Math.round(r.ownerShare + owner1Water);
+    const owner2Total = Math.round(r.ownerShare + owner2Water);
 
     const text = `📊 สรุปยอดบ้านเช่า ประจำเดือน ${thaiMonth}
 - เก็บผู้เช่าได้: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
 - ต้นทุนไฟจริง: ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท (${r.costPerUnit.toFixed(4)} บ./หน่วย)
 - กำไรค่าไฟ: ${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
 
-👴 ส่วนแบ่งป๊า:
-- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)
-💵 ป๊าได้รับ: ${paShareRounded.toLocaleString("th-TH")} บาท
+👴 ส่วนแบ่ง${owner1}:
+- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)${receiver === "owner1" ? " + ค่าน้ำ" : ""}
+💵 ${owner1}ได้รับ: ${owner1Total.toLocaleString("th-TH")} บาท
 
-👨 ส่วนแบ่งอากู้:
-- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2) + ค่าน้ำ
-💵 อากู้ได้รับ: ${akuShareRounded.toLocaleString("th-TH")} บาท`;
+👨 ส่วนแบ่ง${owner2}:
+- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)${receiver === "owner2" ? " + ค่าน้ำ" : ""}
+💵 ${owner2}ได้รับ: ${owner2Total.toLocaleString("th-TH")} บาท`;
 
-    copyToClipboard(text, "คัดลอกสรุปยอดให้ป๊า / อากู้ (LINE) เรียบร้อยแล้ว!");
+    copyToClipboard(text, `คัดลอกสรุปยอดให้${owner1} / ${owner2} (LINE) เรียบร้อยแล้ว!`);
   }
 
   async function setBtnLoading(buttonId, isLoading, defaultText = "") {
@@ -1181,6 +1223,9 @@ ${bankAccount}
         document.getElementById("setWater").value = currentSettings.waterAmount;
         document.getElementById("setElectricRate").value = currentSettings.electricSellRate;
         document.getElementById("setBankAccount").value = currentSettings.bankAccount || "";
+        document.getElementById("setOwner1Name").value = currentSettings.owner1Name || "ป๊า";
+        document.getElementById("setOwner2Name").value = currentSettings.owner2Name || "อากู้";
+        document.getElementById("setWaterReceiver").value = currentSettings.waterReceiver || "owner2";
         document.getElementById("processDiscountInput").value = currentSettings.rentDiscount;
       }
     } catch (err) {
@@ -1194,7 +1239,10 @@ ${bankAccount}
       rentDiscount: Number(document.getElementById("setDiscount").value),
       waterAmount: Number(document.getElementById("setWater").value),
       electricSellRate: Number(document.getElementById("setElectricRate").value),
-      bankAccount: document.getElementById("setBankAccount").value
+      bankAccount: document.getElementById("setBankAccount").value,
+      owner1Name: document.getElementById("setOwner1Name").value,
+      owner2Name: document.getElementById("setOwner2Name").value,
+      waterReceiver: document.getElementById("setWaterReceiver").value
     };
 
     await setBtnLoading("btnSaveSettings", true);
@@ -1210,6 +1258,9 @@ ${bankAccount}
         document.getElementById("settingsAlert").innerHTML = `
           <div class="alert alert-success">บันทึกการตั้งค่าเรียบร้อยแล้ว</div>
         `;
+        if (latestStatement) {
+          renderDashboard(latestStatement);
+        }
       } else {
         document.getElementById("settingsAlert").innerHTML = `
           <div class="alert alert-danger">${data.error}</div>
@@ -1561,20 +1612,33 @@ ${bankAccount}
     document.getElementById("calcStep5").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} - ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} = ${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
     document.getElementById("calcStep6").innerText = `(${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2) + (${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2)`;
 
-    // 4. Owner Revenue (ป๊า & อากู้)
+    // 4. Owner Revenue (Dynamic Owner Names & Water Allocation using specific IDs)
+    const owner1 = currentSettings.owner1Name || "ป๊า";
+    const owner2 = currentSettings.owner2Name || "อากู้";
+    const receiver = currentSettings.waterReceiver || "owner2";
+
     const rentHalf = r.netRentAmount / 2;
     const profitHalf = r.electricProfit / 2;
-    const paShareRounded = Math.round(r.ownerShare); // ป๊าได้ ownerShare ปัดเป็นจำนวนเต็ม
-    const akuShareRounded = Math.round(r.ownerShare + r.waterAmount); // อากู้ได้ ownerShare + ค่าน้ำ ปัดเป็นจำนวนเต็ม
+
+    const owner1ExtraWater = receiver === "owner1" ? r.waterAmount : 0;
+    const owner2ExtraWater = receiver === "owner2" ? r.waterAmount : 0;
+
+    const owner1Total = Math.round(r.ownerShare + owner1ExtraWater);
+    const owner2Total = Math.round(r.ownerShare + owner2ExtraWater);
+
+    document.getElementById("owner1TitleHeader").innerText = `👴 ส่วนแบ่ง${owner1}`;
+    document.getElementById("owner2TitleHeader").innerText = `👨 ส่วนแบ่ง${owner2}`;
 
     document.getElementById("paRentShareText").innerText = `${r.netRentAmount.toLocaleString("th-TH")} ÷ 2 = ${rentHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("paProfitShareText").innerText = `${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2 = ${profitHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("dashOwnerShare").innerText = `${paShareRounded.toLocaleString("th-TH")} บาท`;
+    document.getElementById("paProfitShareText").innerText = `${r.electricProfit.toLocaleString("th-TH")} ÷ 2 = ${profitHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("owner1LabelText").innerText = `💵 ${owner1}ได้รับ`;
+    document.getElementById("dashOwnerShare").innerText = `${owner1Total.toLocaleString("th-TH")} บาท`;
 
     document.getElementById("akuRentShareText").innerText = `${r.netRentAmount.toLocaleString("th-TH")} ÷ 2 = ${rentHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("akuProfitShareText").innerText = `${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2 = ${profitHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("akuWaterText").innerText = `+${r.waterAmount.toLocaleString("th-TH")} บาท`;
-    document.getElementById("akuTotalShare").innerText = `${akuShareRounded.toLocaleString("th-TH")} บาท`;
+    document.getElementById("akuProfitShareText").innerText = `${r.electricProfit.toLocaleString("th-TH")} ÷ 2 = ${profitHalf.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("akuWaterText").innerText = receiver === "owner2" ? `+${r.waterAmount.toLocaleString("th-TH")} บาท (ค่าน้ำ)` : `0 บาท`;
+    document.getElementById("owner2LabelText").innerText = `💵 ${owner2}ได้รับ`;
+    document.getElementById("akuTotalShare").innerText = `${owner2Total.toLocaleString("th-TH")} บาท`;
 
     // สถานะการชำระเงิน
     const isPaid = r.paymentStatus === "paid";
@@ -1603,14 +1667,11 @@ ${bankAccount}
       if (!res.ok) return;
       const records = await res.json();
       
-      const tbodyDesktop = document.getElementById("historyTableBodyDesktop");
-      const containerMobile = document.getElementById("historyCardsMobile");
-      tbodyDesktop.innerHTML = "";
-      containerMobile.innerHTML = "";
+      const accordion = document.getElementById("historyAccordion");
+      accordion.innerHTML = "";
 
       if (records.length === 0) {
-        tbodyDesktop.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีข้อมูลการคำนวณในระบบ</td></tr>`;
-        containerMobile.innerHTML = `<div class="text-center text-muted py-3">ยังไม่มีข้อมูลการคำนวณในระบบ</div>`;
+        accordion.innerHTML = `<div class="text-center text-muted py-3">ยังไม่มีข้อมูลการคำนวณในระบบ</div>`;
         return;
       }
 
@@ -1626,74 +1687,128 @@ ${bankAccount}
       document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
       document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
 
-      // ซิงค์การแสดงผล Dashboard ให้ตรงกับงวดที่เลือกอยู่ 100% หากไม่มีข้อมูลให้แสดงสถานะว่าง
+      // ซิงค์การแสดงผล Dashboard ให้ตรงกับงวดที่เลือกอยู่ 100%
       if (currentSelectedMonth && statementCache[currentSelectedMonth]) {
         renderDashboard(statementCache[currentSelectedMonth]);
       } else {
         renderDashboard(null);
       }
 
+      // จัดกลุ่มข้อมูลประวัติตามปี พ.ศ.
+      const groupsByYear = {};
       records.forEach(r => {
-        const isPaid = r.paymentStatus === "paid";
-        const statusBadge = isPaid
-          ? `<span class="fw-bold text-success">🟢 ชำระแล้ว</span>`
-          : `<span class="fw-bold text-danger">🔴 รอชำระ</span>`;
-        const toggleTo = isPaid ? "unpaid" : "paid";
-        const toggleLabel = isPaid ? "ยกเลิกชำระ" : "ชำระแล้ว";
-        const btnToggleClass = isPaid ? "btn-outline-secondary" : "btn-success";
-        const thaiMonthText = formatThaiMonth(r.month);
+        const [yearStr] = r.month.split("-");
+        const thaiYear = Number(yearStr) + 543;
+        if (!groupsByYear[thaiYear]) groupsByYear[thaiYear] = [];
+        groupsByYear[thaiYear].push(r);
+      });
 
-        // 1. Desktop Row
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="fw-bold">${thaiMonthText}</td>
-          <td>${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}</td>
-          <td class="fw-bold">${r.usedUnit.toLocaleString("th-TH")}</td>
-          <td>${r.costPerUnit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td class="fw-bold text-primary">${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td class="fw-bold text-success">${Math.round(r.ownerShare).toLocaleString("th-TH")}</td>
-          <td>${statusBadge}</td>
-          <td>
-            <div class="btn-group">
-              <button class="btn btn-sm btn-outline-primary touch-target px-2" onclick="viewInvoiceByMonth('${r.month}')">พิมพ์บิล</button>
-              <button class="btn btn-sm ${btnToggleClass} touch-target px-2" onclick="updatePaymentStatus('${r.month}', '${toggleTo}')">${toggleLabel}</button>
-            </div>
-          </td>
-        `;
-        tbodyDesktop.appendChild(tr);
+      const sortedYears = Object.keys(groupsByYear).sort((a, b) => b - a);
 
-        // 2. Mobile Card
-        const card = document.createElement("div");
-        card.className = "card p-3 mb-3 bg-white border";
-        card.innerHTML = `
-          <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-            <span class="fw-bold fs-5">${thaiMonthText}</span>
-            <span>${statusBadge}</span>
-          </div>
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <span class="text-muted small d-block">ยอดรวมผู้เช่า</span>
-              <strong class="text-primary fs-5">${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บ.</strong>
+      sortedYears.forEach((year, index) => {
+        const yearRecords = groupsByYear[year];
+        const collapseId = `collapseYear${year}`;
+        const isFirst = index === 0;
+
+        let tableRows = "";
+        let mobileCards = "";
+
+        yearRecords.forEach(r => {
+          const isPaid = r.paymentStatus === "paid";
+          const statusBadge = isPaid
+            ? `<span class="fw-bold text-success">🟢 ชำระแล้ว</span>`
+            : `<span class="fw-bold text-danger">🔴 รอชำระ</span>`;
+          const toggleTo = isPaid ? "unpaid" : "paid";
+          const toggleLabel = isPaid ? "ยกเลิกชำระ" : "ชำระแล้ว";
+          const btnToggleClass = isPaid ? "btn-outline-secondary" : "btn-success";
+          const thaiMonthText = formatThaiMonth(r.month);
+
+          // 1. Desktop Rows
+          tableRows += `
+            <tr>
+              <td class="fw-bold">${thaiMonthText}</td>
+              <td>${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}</td>
+              <td class="fw-bold">${r.usedUnit.toLocaleString("th-TH")}</td>
+              <td>${r.costPerUnit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td class="fw-bold text-primary">${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td class="fw-bold text-success">${Math.round(r.ownerShare).toLocaleString("th-TH")}</td>
+              <td>${statusBadge}</td>
+              <td>
+                <div class="btn-group">
+                  <button class="btn btn-sm btn-outline-primary touch-target px-2" onclick="viewInvoiceByMonth('${r.month}')">พิมพ์บิล</button>
+                  <button class="btn btn-sm ${btnToggleClass} touch-target px-2" onclick="updatePaymentStatus('${r.month}', '${toggleTo}')">${toggleLabel}</button>
+                </div>
+              </td>
+            </tr>
+          `;
+
+          // 2. Mobile Cards
+          mobileCards += `
+            <div class="card p-3 mb-2 bg-white border">
+              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <span class="fw-bold">${thaiMonthText}</span>
+                <span>${statusBadge}</span>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <span class="text-muted small d-block">ยอดรวมผู้เช่า</span>
+                  <strong class="text-primary">${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บ.</strong>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted small d-block">ส่วนแบ่งป๊าได้</span>
+                  <strong class="text-success">${Math.round(r.ownerShare).toLocaleString("th-TH")} บ.</strong>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted small d-block">มิเตอร์</span>
+                  <small>${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}</small>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted small d-block">ใช้ไฟ</span>
+                  <small>${r.usedUnit.toLocaleString("th-TH")} หน่วย</small>
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary flex-fill touch-target btn-sm" onclick="viewInvoiceByMonth('${r.month}')">ใบแจ้งหนี้</button>
+                <button class="btn ${btnToggleClass} flex-fill touch-target btn-sm" onclick="updatePaymentStatus('${r.month}', '${toggleTo}')">${toggleLabel}</button>
+              </div>
             </div>
-            <div class="col-6">
-              <span class="text-muted small d-block">ส่วนแบ่งป๊าได้</span>
-              <strong class="text-success fs-5">${Math.round(r.ownerShare).toLocaleString("th-TH")} บ.</strong>
+          `;
+        });
+
+        const itemHtml = `
+          <div class="accordion-item mb-2 border rounded">
+            <h2 class="accordion-header" id="heading${year}">
+              <button class="accordion-button ${isFirst ? '' : 'collapsed'} fw-bold fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                ปี พ.ศ. ${year} (${yearRecords.length} เดือน)
+              </button>
+            </h2>
+            <div id="${collapseId}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}" data-bs-parent="#historyAccordion">
+              <div class="accordion-body p-2 p-md-3">
+                <div class="table-responsive d-none d-md-block">
+                  <table class="table table-bordered align-middle text-center mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>เดือน</th>
+                        <th>มิเตอร์ก่อน-หลัง</th>
+                        <th>หน่วยที่ใช้</th>
+                        <th>ต้นทุน/หน่วย</th>
+                        <th>ยอดรวมผู้เช่า</th>
+                        <th>ส่วนแบ่งเจ้าของ</th>
+                        <th>สถานะ</th>
+                        <th>จัดการ</th>
+                      </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                  </table>
+                </div>
+                <div class="d-block d-md-none">
+                  ${mobileCards}
+                </div>
+              </div>
             </div>
-            <div class="col-6">
-              <span class="text-muted small d-block">มิเตอร์</span>
-              <span>${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}</span>
-            </div>
-            <div class="col-6">
-              <span class="text-muted small d-block">ใช้ไป / ต้นทุน</span>
-              <span>${r.usedUnit.toLocaleString("th-TH")} หน่วย (${r.costPerUnit.toFixed(2)} บ.)</span>
-            </div>
-          </div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary flex-fill touch-target" onclick="viewInvoiceByMonth('${r.month}')">ใบแจ้งหนี้</button>
-            <button class="btn ${btnToggleClass} flex-fill touch-target" onclick="updatePaymentStatus('${r.month}', '${toggleTo}')">${toggleLabel}</button>
           </div>
         `;
-        containerMobile.appendChild(card);
+        accordion.insertAdjacentHTML("beforeend", itemHtml);
       });
     } catch (err) {
       console.error("Failed to load history", err);
@@ -1736,7 +1851,6 @@ ${bankAccount}
     document.getElementById("invPrevReading").innerText = r.previousReading;
     document.getElementById("invCurrReading").innerText = r.currentReading;
     document.getElementById("invUsedUnits").innerText = `${r.usedUnit} หน่วย`;
-    document.getElementById("invCostPerUnit").innerText = `${r.costPerUnit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} บาท/หน่วย`;
 
     document.getElementById("invUsedUnitsRate").innerText = r.usedUnit;
     document.getElementById("invRate").innerText = r.electricSellRate;
@@ -1748,6 +1862,33 @@ ${bankAccount}
 
     const modal = new bootstrap.Modal(document.getElementById("invoiceModal"));
     modal.show();
+  }
+
+  async function exportShareCardPNG() {
+    if (!latestStatement) return;
+    const r = latestStatement;
+    document.getElementById("cardMonth").innerText = `ประจำเดือน: ${formatThaiMonth(r.month)}`;
+    document.getElementById("cardNetRent").innerText = `${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("cardWater").innerText = `${r.waterAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("cardMeterRange").innerText = `${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}`;
+    document.getElementById("cardMeterCalc").innerText = `${r.usedUnit.toLocaleString("th-TH")} หน่วย @ ${r.electricSellRate} บาท`;
+    document.getElementById("cardElectricCharge").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+    document.getElementById("cardTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
+
+    const bankText = r.bankAccount && r.bankAccount.trim() !== "" ? r.bankAccount : (currentSettings.bankAccount || "-");
+    document.getElementById("cardBankAccount").innerText = bankText;
+
+    const cardElement = document.getElementById("mobileShareCard");
+    try {
+      const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true });
+      const link = document.createElement("a");
+      link.download = `bill-${r.month}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      showToast("บันทึกรูปภาพสำหรับแชร์สำเร็จ!");
+    } catch (e) {
+      alert("ไม่สามารถสร้างรูปภาพได้: " + e.message);
+    }
   }
 </script>
 

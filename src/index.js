@@ -18,7 +18,10 @@ const DEFAULT_SETTINGS = {
   rentDiscount: 500,
   waterAmount: 100,
   electricSellRate: 7,
-  bankAccount: ""
+  bankAccount: "",
+  owner1Name: "ป๊า",
+  owner2Name: "อากู้",
+  waterReceiver: "owner2"
 };
 
 const JSON_HEADERS = {
@@ -203,7 +206,10 @@ export default {
           rentDiscount: Number(payload.rentDiscount),
           waterAmount: Number(payload.waterAmount),
           electricSellRate: Number(payload.electricSellRate),
-          bankAccount: String(payload.bankAccount || "").trim()
+          bankAccount: String(payload.bankAccount || "").trim(),
+          owner1Name: String(payload.owner1Name || "ป๊า").trim(),
+          owner2Name: String(payload.owner2Name || "อากู้").trim(),
+          waterReceiver: payload.waterReceiver === "owner1" ? "owner1" : "owner2"
         };
 
         await env.HOUSE_RENT_KV.put("settings", JSON.stringify(settings));
@@ -424,15 +430,14 @@ export default {
       }
 
       // -------------------------------------------------------------
-      // 8. RECORDS HISTORY (N+1 OPTIMIZED: LATEST 12 MONTHS)
+      // 8. RECORDS HISTORY (ALL MONTHS)
       // -------------------------------------------------------------
       if (url.pathname === "/api/records" && method === "GET") {
         const statementList = await env.HOUSE_RENT_KV.list({ prefix: "monthly_statement:" });
         
-        // เรียงลำดับจากเดือนล่าสุดไปหาอดีต และจำกัดสูงสุด 12 เดือนล่าสุด
+        // เรียงลำดับจากเดือนล่าสุดไปหาอดีต โดยนำข้อจำกัด 12 เดือนออก
         const sortedKeys = statementList.keys
-          .sort((a, b) => b.name.localeCompare(a.name))
-          .slice(0, 12);
+          .sort((a, b) => b.name.localeCompare(a.name));
 
         const statements = await Promise.all(
           sortedKeys.map((k) => env.HOUSE_RENT_KV.get(k.name, { type: "json" }))
