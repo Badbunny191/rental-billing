@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = {
   rentDiscount: 500,
   waterAmount: 100,
   electricSellRate: 7,
+  paymentMethod: "bank",
   bankAccount: "",
   owner1Name: "ป๊า",
   owner2Name: "อากู้",
@@ -206,6 +207,7 @@ export default {
           rentDiscount: Number(payload.rentDiscount),
           waterAmount: Number(payload.waterAmount),
           electricSellRate: Number(payload.electricSellRate),
+          paymentMethod: payload.paymentMethod === "cash" ? "cash" : "bank",
           bankAccount: String(payload.bankAccount || "").trim(),
           owner1Name: String(payload.owner1Name || "ป๊า").trim(),
           owner2Name: String(payload.owner2Name || "อากู้").trim(),
@@ -375,6 +377,7 @@ export default {
         const statement = {
           month,
           ...statementCalc,
+          paymentMethod: settings.paymentMethod || "bank",
           bankAccount: settings.bankAccount || "",
           paymentStatus,
           paidAt,

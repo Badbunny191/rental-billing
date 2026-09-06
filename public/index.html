@@ -488,18 +488,23 @@
         </div>
       </div>
 
-      <!-- ปุ่มส่งงานทาง LINE -->
+      <!-- ปุ่มส่งงานทาง LINE (Dashboard Actions) -->
       <div class="card p-3 mb-3 bg-white border-0 shadow-sm no-print">
         <span class="text-muted small fw-bold mb-2 d-block">ส่งยอดประจำเดือนทาง LINE</span>
         <div class="row g-2">
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-4">
             <button class="btn btn-success btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="copyTenantBillLine()">
-              📋 1. คัดลอกบิลส่งผู้เช่า (LINE)
+              📋 คัดลอกข้อความส่งผู้เช่า
             </button>
           </div>
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-4">
+            <button class="btn btn-info text-white btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="exportShareCardPNG()">
+              🖼️ บันทึกเป็นรูปภาพ
+            </button>
+          </div>
+          <div class="col-12 col-md-4">
             <button class="btn btn-outline-success btn-lg w-100 touch-target fw-bold text-start ps-3" onclick="copyOwnerSummaryLine()">
-              📋 2. คัดลอกสรุปยอดให้ป๊า / อากู้ (LINE)
+              📋 คัดลอกสรุปเจ้าของ
             </button>
           </div>
         </div>
@@ -631,10 +636,31 @@
           <label class="form-label fw-bold">ราคาขายไฟให้ผู้เช่า (บาทต่อหน่วย)</label>
           <input type="number" class="form-control" id="setElectricRate" step="any" min="0">
         </div>
+
+        <!-- 2. PAYMENT METHOD SETTINGS -->
         <div class="mb-3">
-          <label class="form-label fw-bold">ข้อมูลบัญชีรับชำระเงิน (แสดงในบิลและข้อความ LINE)</label>
-          <input type="text" class="form-control" id="setBankAccount" placeholder="เช่น ธนาคารกสิกรไทย 123-4-56789-0 นายเสรี">
+          <label class="form-label fw-bold">ช่องทางรับชำระ</label>
+          <div class="d-flex gap-4 mt-1">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="paymentMethodRadio" id="payMethodCash" value="cash" onchange="togglePaymentMethodUI()">
+              <label class="form-check-label" for="payMethodCash">
+                💵 เงินสด
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="paymentMethodRadio" id="payMethodBank" value="bank" checked onchange="togglePaymentMethodUI()">
+              <label class="form-check-label" for="payMethodBank">
+                🏦 โอนบัญชี
+              </label>
+            </div>
+          </div>
         </div>
+
+        <div class="mb-3" id="bankAccountSettingGroup">
+          <label class="form-label fw-bold">ข้อมูลบัญชีรับชำระเงิน (แสดงในบิลและข้อความ LINE เมื่อเลือกโอนบัญชี)</label>
+          <textarea class="form-control" id="setBankAccount" rows="3" placeholder="ธนาคาร: กสิกรไทย&#10;เลขบัญชี: 123-4-56789-0&#10;ชื่อบัญชี: นายเสรี"></textarea>
+        </div>
+
         <div class="row g-3 mb-3">
           <div class="col-12 col-md-6">
             <label class="form-label fw-bold">ชื่อเจ้าของคนที่ 1 (owner1Name)</label>
@@ -715,7 +741,7 @@
         </div>
 
         <div class="card p-3 bg-light border-0">
-          <div class="fw-bold mb-1">ช่องทางการชำระเงิน:</div>
+          <div class="fw-bold mb-1" id="invPaymentChannelTitle">ช่องทางการชำระเงิน:</div>
           <div id="invBankAccount" class="text-dark fs-6" style="white-space: pre-line;">-</div>
         </div>
 
@@ -725,50 +751,75 @@
       </div>
       <div class="modal-footer no-print">
         <button type="button" class="btn btn-secondary btn-lg touch-target" data-bs-dismiss="modal">ปิด</button>
-        <button type="button" class="btn btn-info text-white btn-lg touch-target" onclick="exportShareCardPNG()">📷 บันทึกเป็นรูปภาพ</button>
-        <button type="button" class="btn btn-success btn-lg touch-target" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+        <button type="button" class="btn btn-success btn-lg touch-target" onclick="window.print()">📄 พิมพ์ / บันทึก PDF</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Mobile-first Share Card (ใช้จับภาพเป็น PNG ส่ง LINE ซ่อนจากการแสดงผลปกติ) -->
-<div id="mobileShareCardContainer" style="position: fixed; left: -9999px; top: 0; width: 420px; background: #f4f6f9; padding: 16px; font-family: sans-serif;">
-  <div id="mobileShareCard" style="background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #dee2e6;">
-    <div style="text-align: center; border-bottom: 2px solid #0d6efd; padding-bottom: 12px; margin-bottom: 16px;">
-      <h3 style="margin: 0; color: #0d6efd; font-weight: bold; font-size: 22px;">🏡 ใบแจ้งค่าเช่าและสาธารณูปโภค</h3>
-      <div id="cardMonth" style="color: #495057; font-weight: bold; font-size: 16px; margin-top: 6px;">-</div>
+<!-- Mobile-first Share Card Redesign (PNG Layout ตามข้อกำหนด 1) -->
+<div id="mobileShareCardContainer" style="position: fixed; left: -9999px; top: 0; width: 440px; background: #ffffff; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box;">
+  <div id="mobileShareCard" style="background: #ffffff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #1e293b; box-sizing: border-box;">
+    
+    <!-- ส่วนหัว: ชื่อเอกสารกึ่งกลาง, ประจำเดือนกึ่งกลาง, วันที่ออกบิลชิดขวา -->
+    <div style="text-align: center; margin-bottom: 12px;">
+      <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px;">🏡 ใบแจ้งค่าเช่าและสาธารณูปโภค</h3>
+      <div id="cardMonth" style="margin-top: 6px; font-size: 16px; font-weight: 600; color: #475569;">ประจำเดือน -</div>
     </div>
-    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 16px;">
-      <span style="color: #6c757d;">ค่าเช่าสุทธิ</span>
-      <strong id="cardNetRent" style="color: #212529;">0.00 บาท</strong>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <span id="cardStatusBadge" style="display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 13px; font-weight: 700; background: #fef2f2; color: #dc2626;">🔴 รอชำระ</span>
+      <div id="cardIssueDate" style="font-size: 13px; color: #64748b; font-weight: 500;">วันที่ออกบิล -</div>
     </div>
-    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 16px;">
-      <span style="color: #6c757d;">ค่าน้ำ</span>
-      <strong id="cardWater" style="color: #212529;">0.00 บาท</strong>
+
+    <div style="border-top: 1.5px dashed #cbd5e1; margin: 14px 0;"></div>
+
+    <!-- ค่าเช่าและค่าน้ำ -->
+    <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 15px;">
+      <span style="color: #64748b;">ค่าเช่า</span>
+      <span id="cardBaseRent" style="font-weight: 600; color: #1e293b;">0 บาท</span>
     </div>
-    <div style="background: #f8f9fa; border-radius: 8px; padding: 10px; margin: 10px 0; border: 1px solid #e9ecef;">
-      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #6c757d; margin-bottom: 4px;">
-        <span>มิเตอร์:</span>
-        <span id="cardMeterRange">- → -</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #6c757d; margin-bottom: 4px;">
-        <span>ใช้ไฟ:</span>
-        <span id="cardMeterCalc">- หน่วย</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 16px; border-top: 1px dashed #ced4da; padding-top: 6px;">
-        <span style="color: #212529; font-weight: bold;">ค่าไฟฟ้า:</span>
-        <strong id="cardElectricCharge" style="color: #212529;">0.00 บาท</strong>
-      </div>
+    <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 15px; color: #dc2626;">
+      <span>ส่วนลด</span>
+      <span id="cardRentDiscount" style="font-weight: 600;">-0 บาท</span>
     </div>
-    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #212529; padding-top: 12px; margin-top: 12px;">
-      <span style="font-size: 18px; font-weight: bold; color: #212529;">💰 ยอดรวมที่ต้องชำระ</span>
-      <span id="cardTotalBill" style="font-size: 24px; font-weight: bold; color: #0d6efd;">0.00 บาท</span>
+    <div style="display: flex; justify-content: space-between; padding: 6px 8px; font-size: 15px; background: #f8fafc; border-radius: 6px; margin: 4px 0;">
+      <span style="font-weight: 600; color: #0f172a;">ค่าเช่าสุทธิ</span>
+      <span id="cardNetRent" style="font-weight: 700; color: #0f172a;">0 บาท</span>
     </div>
-    <div style="margin-top: 16px; background: #e7f1ff; border-radius: 8px; padding: 12px;">
-      <div style="font-size: 13px; font-weight: bold; color: #084298; margin-bottom: 4px;">บัญชีรับชำระ:</div>
-      <div id="cardBankAccount" style="font-size: 14px; color: #052c65; white-space: pre-line;">-</div>
+    <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 15px;">
+      <span style="color: #64748b;">ค่าน้ำ</span>
+      <span id="cardWater" style="font-weight: 600; color: #1e293b;">0 บาท</span>
     </div>
+
+    <div style="border-top: 1.5px dashed #cbd5e1; margin: 14px 0;"></div>
+
+    <!-- สรุปค่าไฟฟ้า -->
+    <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">สรุปค่าไฟฟ้า</div>
+    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; margin-bottom: 4px;">
+      <span>มิเตอร์</span>
+      <span id="cardMeterRange" style="font-weight: 500;">- → -</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b; margin-bottom: 6px;">
+      <span id="cardMeterCalc">ใช้ไฟ - หน่วย × - บาท</span>
+      <span id="cardElectricCharge" style="font-weight: 700; color: #1e293b; font-size: 15px;">0 บาท</span>
+    </div>
+
+    <div style="border-top: 1.5px dashed #cbd5e1; margin: 14px 0;"></div>
+
+    <!-- ยอดชำระทั้งสิ้น (ตัวใหญ่ที่สุด) -->
+    <div style="text-align: center; padding: 8px 0 10px 0;">
+      <div style="font-size: 16px; font-weight: 700; color: #475569; margin-bottom: 4px;">💰 ยอดชำระทั้งสิ้น</div>
+      <div id="cardTotalBill" style="font-size: 32px; font-weight: 800; color: #0d6efd; line-height: 1.2;">0 บาท</div>
+    </div>
+
+    <div style="border-top: 1.5px dashed #cbd5e1; margin: 14px 0;"></div>
+
+    <!-- ช่องทางรับชำระ -->
+    <div id="cardPaymentInfoArea" style="background: #f8fafc; border-radius: 8px; padding: 12px; font-size: 14px; color: #334155; line-height: 1.5;">
+      💵 รับชำระเงินสด
+    </div>
+
   </div>
 </div>
 
@@ -779,6 +830,7 @@
     rentDiscount: 500,
     waterAmount: 100,
     electricSellRate: 7,
+    paymentMethod: "bank",
     bankAccount: "",
     owner1Name: "ป๊า",
     owner2Name: "อากู้",
@@ -809,6 +861,16 @@
     const [year, month] = monthStr.split("-").map(Number);
     const thaiYear = year + 543;
     return `${thaiMonths[month - 1]} ${thaiYear}`;
+  }
+
+  function formatThaiDate(isoDateStr) {
+    if (!isoDateStr) return "-";
+    const d = new Date(isoDateStr);
+    if (isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const month = thaiMonths[d.getMonth()];
+    const year = d.getFullYear() + 543;
+    return `${day} ${month} ${year}`;
   }
 
   function showToast(message) {
@@ -892,7 +954,6 @@
     document.getElementById("monthPickerBackdrop").classList.add("active");
     document.getElementById("monthPickerSheet").classList.add("active");
 
-    // เลื่อน Scroll ไปยังตำแหน่งที่เลือก
     setTimeout(() => {
       const selMonth = document.querySelector("#wheelMonthCol .ios-wheel-item.selected");
       if (selMonth) selMonth.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -913,7 +974,6 @@
     updateMonthViews();
   }
 
-  // ออกบิลใหม่: หาบิลล่าสุดในระบบ แล้วเลือกงวดถัดไปอัตโนมัติ
   function createNewBillingPeriod() {
     const existingMonths = Object.keys(statementCache).sort();
     let baseMonth = currentSelectedMonth;
@@ -935,7 +995,6 @@
     showToast(`เปิดงวดใหม่: ${formatThaiMonth(currentSelectedMonth)}`);
   }
 
-  // 1. Month Stepper Handler (เลื่อนงวดทีละเดือน)
   function navigateMonth(offset) {
     if (!currentSelectedMonth) return;
     let [year, month] = currentSelectedMonth.split("-").map(Number);
@@ -970,7 +1029,6 @@
     await loadMeterReadingForMonth();
     await autoFillPreviousMeter();
 
-    // ซิงค์สถานะ Dashboard กับงวดที่เลือก หากมีข้อมูลใน Cache ให้ render ทันที หากไม่มีให้เป็น null
     if (statementCache[currentSelectedMonth]) {
       renderDashboard(statementCache[currentSelectedMonth]);
     } else {
@@ -978,18 +1036,15 @@
     }
   }
 
-  // 2. Auto-Fill เลขมิเตอร์เดือนก่อนหน้า
   async function autoFillPreviousMeter() {
     const currPrevVal = document.getElementById("meterPrevInput").value;
     const badge = document.getElementById("autoFillMeterBadge");
 
-    // คำนวณเดือนก่อนหน้า (YYYY-MM)
     const [year, month] = currentSelectedMonth.split("-").map(Number);
     const prevDate = new Date(year, month - 2, 1);
     const prevYear = prevDate.getFullYear();
     const prevMonthStr = `${prevYear}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
-    // ถ้าช่องมิเตอร์เดือนก่อนยังว่างอยู่ ให้ค้นหาอัตโนมัติ
     if (!currPrevVal) {
       let prevReading = null;
 
@@ -1023,7 +1078,7 @@
     }
   }
 
-  // 3. ปุ่มคัดลอกข้อความส่ง LINE ให้ผู้เช่า (Clean View)
+  // 3. COPY LINE ผู้เช่า (ใช้ Format และลำดับเดียวกับ PNG Share Card ตามข้อ 3)
   function copyTenantBillLine() {
     if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
       alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
@@ -1031,27 +1086,55 @@
     }
     const r = latestStatement;
     const thaiMonth = formatThaiMonth(r.month);
-    const bankAccount = r.bankAccount && r.bankAccount.trim() !== "" ? r.bankAccount : currentSettings.bankAccount;
+    const issueDate = formatThaiDate(r.updatedAt || new Date().toISOString());
 
-    const text = `🏡 ใบแจ้งค่าเช่าและค่าสาธารณูปโภค
-ประจำเดือน: ${thaiMonth}
+    const isCash = (r.paymentMethod || currentSettings.paymentMethod) === "cash";
+    let paymentChannelText = "💵 รับชำระเงินสด";
+    if (!isCash) {
+      const bankInfo = (r.bankAccount && r.bankAccount.trim() !== "") ? r.bankAccount : (currentSettings.bankAccount || "-");
+      paymentChannelText = `🏦 ช่องทางรับชำระ\n${bankInfo}`;
+    }
 
-- ค่าเช่าสุทธิ: ${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-- ค่าน้ำ: ${r.waterAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-- ค่าไฟฟ้า: ${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-  (มิเตอร์ ${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")} | ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย @ ${r.electricSellRate} บาท)
+    const text = `🏡 ใบแจ้งค่าเช่าและสาธารณูปโภค
 
-💰 ยอดรวมที่ต้องชำระ: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
+ประจำเดือน ${thaiMonth}
 
-ช่องทางชำระเงิน:
-${bankAccount}
+วันที่ออกบิล ${issueDate}
 
-โอนแล้วรบกวนส่งสลิปด้วยครับ ขอบคุณครับ`;
+────────────────────
 
-    copyToClipboard(text, "คัดลอกบิลส่งผู้เช่า (LINE) เรียบร้อยแล้ว!");
+ค่าเช่า ${r.baseRentAmount.toLocaleString("th-TH")} บาท
+
+ส่วนลด -${r.rentDiscount.toLocaleString("th-TH")} บาท
+
+ค่าเช่าสุทธิ ${r.netRentAmount.toLocaleString("th-TH")} บาท
+
+ค่าน้ำ ${r.waterAmount.toLocaleString("th-TH")} บาท
+
+────────────────────
+
+สรุปค่าไฟฟ้า
+
+มิเตอร์ ${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}
+
+ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท
+
+${r.electricCharge.toLocaleString("th-TH")} บาท
+
+────────────────────
+
+💰 ยอดชำระทั้งสิ้น
+
+${r.totalBill.toLocaleString("th-TH")} บาท
+
+────────────────────
+
+${paymentChannelText}`;
+
+    copyToClipboard(text, "คัดลอกข้อความส่งผู้เช่า (LINE) เรียบร้อยแล้ว!");
   }
 
-  // 4. ปุ่มคัดลอกข้อความสรุปส่วนแบ่งเงินให้เจ้าของทั้งสองคน
+  // 4. COPY LINE เจ้าของ (แทนข้อความเดิมทั้งหมดตาม Format ข้อ 4)
   function copyOwnerSummaryLine() {
     if (!latestStatement || latestStatement.month !== currentSelectedMonth) {
       alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวด " + formatThaiMonth(currentSelectedMonth) + " กรุณากดคำนวณก่อน");
@@ -1059,6 +1142,7 @@ ${bankAccount}
     }
     const r = latestStatement;
     const thaiMonth = formatThaiMonth(r.month);
+
     const owner1 = currentSettings.owner1Name || "ป๊า";
     const owner2 = currentSettings.owner2Name || "อากู้";
     const receiver = currentSettings.waterReceiver || "owner2";
@@ -1069,20 +1153,44 @@ ${bankAccount}
     const owner1Total = Math.round(r.ownerShare + owner1Water);
     const owner2Total = Math.round(r.ownerShare + owner2Water);
 
-    const text = `📊 สรุปยอดบ้านเช่า ประจำเดือน ${thaiMonth}
-- เก็บผู้เช่าได้: ${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
-- ต้นทุนไฟจริง: ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท (${r.costPerUnit.toFixed(4)} บ./หน่วย)
-- กำไรค่าไฟ: ${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท
+    const owner1Desc = receiver === "owner1" ? "ค่าเช่า + กำไรไฟ + ค่าน้ำ" : "ค่าเช่า + กำไรไฟ";
+    const owner2Desc = receiver === "owner2" ? "ค่าเช่า + กำไรไฟ + ค่าน้ำ" : "ค่าเช่า + กำไรไฟ";
 
-👴 ส่วนแบ่ง${owner1}:
-- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)${receiver === "owner1" ? " + ค่าน้ำ" : ""}
-💵 ${owner1}ได้รับ: ${owner1Total.toLocaleString("th-TH")} บาท
+    const text = `📊 สรุปรายได้บ้านเช่า
 
-👨 ส่วนแบ่ง${owner2}:
-- (ค่าเช่าสุทธิ ÷ 2) + (กำไรค่าไฟ ÷ 2)${receiver === "owner2" ? " + ค่าน้ำ" : ""}
-💵 ${owner2}ได้รับ: ${owner2Total.toLocaleString("th-TH")} บาท`;
+ประจำเดือน ${thaiMonth}
 
-    copyToClipboard(text, `คัดลอกสรุปยอดให้${owner1} / ${owner2} (LINE) เรียบร้อยแล้ว!`);
+────────────────────
+
+รายรับจากผู้เช่า
+
+${r.totalBill.toLocaleString("th-TH")} บาท
+
+────────────────────
+
+ค่าไฟ
+
+เรียกเก็บ ${r.electricCharge.toLocaleString("th-TH")} บาท
+
+ต้นทุนจริง ${Math.round(r.actualElectricCost).toLocaleString("th-TH")} บาท
+
+กำไรค่าไฟ ${Math.round(r.electricProfit).toLocaleString("th-TH")} บาท
+
+────────────────────
+
+👴 ${owner1}
+
+${owner1Desc}
+
+ได้รับ ${owner1Total.toLocaleString("th-TH")} บาท
+
+👨 ${owner2}
+
+${owner2Desc}
+
+ได้รับ ${owner2Total.toLocaleString("th-TH")} บาท`;
+
+    copyToClipboard(text, `คัดลอกสรุปเจ้าของ (LINE) เรียบร้อยแล้ว!`);
   }
 
   async function setBtnLoading(buttonId, isLoading, defaultText = "") {
@@ -1106,12 +1214,14 @@ ${bankAccount}
       document.getElementById("globalNetworkAlert").classList.add("d-none");
       document.getElementById("section-setup").classList.add("d-none");
       document.getElementById("section-login").classList.add("d-none");
-      document.getElementById("section-app").classList.add("d-none");
+      document.getElementById("section-app").classList.remove("d-none");
 
       if (data.setupRequired) {
         document.getElementById("section-setup").classList.remove("d-none");
+        document.getElementById("section-app").classList.add("d-none");
       } else if (!data.authenticated) {
         document.getElementById("section-login").classList.remove("d-none");
+        document.getElementById("section-app").classList.add("d-none");
       } else {
         document.getElementById("section-app").classList.remove("d-none");
         document.getElementById("appUsernameDisplay").innerText = data.username || "admin";
@@ -1209,6 +1319,16 @@ ${bankAccount}
     await updateMonthViews();
   }
 
+  function togglePaymentMethodUI() {
+    const isCash = document.getElementById("payMethodCash").checked;
+    const bankGroup = document.getElementById("bankAccountSettingGroup");
+    if (isCash) {
+      bankGroup.classList.add("d-none");
+    } else {
+      bankGroup.classList.remove("d-none");
+    }
+  }
+
   async function loadSettings() {
     try {
       const res = await fetch("/api/settings");
@@ -1222,6 +1342,14 @@ ${bankAccount}
         document.getElementById("setDiscount").value = currentSettings.rentDiscount;
         document.getElementById("setWater").value = currentSettings.waterAmount;
         document.getElementById("setElectricRate").value = currentSettings.electricSellRate;
+        
+        if (currentSettings.paymentMethod === "cash") {
+          document.getElementById("payMethodCash").checked = true;
+        } else {
+          document.getElementById("payMethodBank").checked = true;
+        }
+        togglePaymentMethodUI();
+
         document.getElementById("setBankAccount").value = currentSettings.bankAccount || "";
         document.getElementById("setOwner1Name").value = currentSettings.owner1Name || "ป๊า";
         document.getElementById("setOwner2Name").value = currentSettings.owner2Name || "อากู้";
@@ -1234,11 +1362,13 @@ ${bankAccount}
   }
 
   async function saveSettings() {
+    const isCash = document.getElementById("payMethodCash").checked;
     const payload = {
       baseRentAmount: Number(document.getElementById("setBaseRent").value),
       rentDiscount: Number(document.getElementById("setDiscount").value),
       waterAmount: Number(document.getElementById("setWater").value),
       electricSellRate: Number(document.getElementById("setElectricRate").value),
+      paymentMethod: isCash ? "cash" : "bank",
       bankAccount: document.getElementById("setBankAccount").value,
       owner1Name: document.getElementById("setOwner1Name").value,
       owner2Name: document.getElementById("setOwner2Name").value,
@@ -1579,14 +1709,9 @@ ${bankAccount}
     btn.classList.remove("disabled");
     const r = statement;
 
-    // วันที่ออกบิล (จาก updatedAt หรือวันที่บันทึก)
-    let billDateText = "-";
-    if (r.updatedAt) {
-      const d = new Date(r.updatedAt);
-      billDateText = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear() + 543}`;
-    }
+    const billDateText = formatThaiDate(r.updatedAt || new Date().toISOString());
 
-    // 1. Tenant Bill View (แสดงเฉพาะข้อมูลที่ผู้เช่าต้องรู้ - ห้ามมีกำไร/ต้นทุน/ส่วนแบ่ง)
+    // 1. Tenant Bill View (แสดงเฉพาะข้อมูลที่ผู้เช่าต้องรู้)
     document.getElementById("tenantBillMonthDisplay").innerText = formatThaiMonth(r.month);
     document.getElementById("tenantBillDateDisplay").innerText = `วันที่ออกบิล: ${billDateText}`;
     document.getElementById("tenantBaseRent").innerText = `${r.baseRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
@@ -1604,7 +1729,7 @@ ${bankAccount}
     document.getElementById("ownerSumActualCost").innerText = `${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
     document.getElementById("dashElectricProfit").innerText = `${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
 
-    // 3. Expandable Calculation Steps (6 ขั้นตอนครบถ้วน)
+    // 3. Expandable Calculation Steps (6 ขั้นตอน)
     document.getElementById("calcStep1").innerText = `${r.currentReading.toLocaleString("th-TH")} - ${r.previousReading.toLocaleString("th-TH")} = ${r.usedUnit.toLocaleString("th-TH")} หน่วย`;
     document.getElementById("calcStep2").innerText = `${r.usedUnit.toLocaleString("th-TH")} × ${r.electricSellRate} = ${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
     document.getElementById("calcStep3").innerText = `${r.utilityBillAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ ${r.utilityBillUnit.toLocaleString("th-TH")} = ${r.costPerUnit.toFixed(4)} บาท/หน่วย`;
@@ -1612,7 +1737,7 @@ ${bankAccount}
     document.getElementById("calcStep5").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} - ${r.actualElectricCost.toLocaleString("th-TH", { minimumFractionDigits: 2 })} = ${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
     document.getElementById("calcStep6").innerText = `(${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2) + (${r.electricProfit.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ÷ 2)`;
 
-    // 4. Owner Revenue (Dynamic Owner Names & Water Allocation using specific IDs)
+    // 4. Owner Revenue (Dynamic Owner Names & Water Allocation)
     const owner1 = currentSettings.owner1Name || "ป๊า";
     const owner2 = currentSettings.owner2Name || "อากู้";
     const receiver = currentSettings.waterReceiver || "owner2";
@@ -1679,7 +1804,6 @@ ${bankAccount}
         statementCache[r.month] = r;
       });
 
-      // กำหนดงวดเริ่มต้นจากงวดล่าสุดที่มีข้อมูลจริงในระบบ หากยังไม่มีการเลือกงวด
       if (!currentSelectedMonth && records.length > 0) {
         currentSelectedMonth = records[0].month;
       }
@@ -1687,14 +1811,12 @@ ${bankAccount}
       document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
       document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
 
-      // ซิงค์การแสดงผล Dashboard ให้ตรงกับงวดที่เลือกอยู่ 100%
       if (currentSelectedMonth && statementCache[currentSelectedMonth]) {
         renderDashboard(statementCache[currentSelectedMonth]);
       } else {
         renderDashboard(null);
       }
 
-      // จัดกลุ่มข้อมูลประวัติตามปี พ.ศ.
       const groupsByYear = {};
       records.forEach(r => {
         const [yearStr] = r.month.split("-");
@@ -1857,35 +1979,75 @@ ${bankAccount}
     document.getElementById("invElectricCharge").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
     document.getElementById("invTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
 
-    const bankText = r.bankAccount && r.bankAccount.trim() !== "" ? r.bankAccount : (currentSettings.bankAccount || "ยังไม่ได้กำหนดเลขบัญชี");
-    document.getElementById("invBankAccount").innerText = bankText;
+    const isCash = (r.paymentMethod || currentSettings.paymentMethod) === "cash";
+    if (isCash) {
+      document.getElementById("invPaymentChannelTitle").innerText = "ช่องทางการชำระเงิน:";
+      document.getElementById("invBankAccount").innerText = "💵 รับชำระเงินสด";
+    } else {
+      document.getElementById("invPaymentChannelTitle").innerText = "ช่องทางการชำระเงิน:";
+      const bankText = (r.bankAccount && r.bankAccount.trim() !== "") ? r.bankAccount : (currentSettings.bankAccount || "ยังไม่ได้กำหนดเลขบัญชี");
+      document.getElementById("invBankAccount").innerText = `🏦 ช่องทางรับชำระ\n${bankText}`;
+    }
 
     const modal = new bootstrap.Modal(document.getElementById("invoiceModal"));
     modal.show();
   }
 
+  // 1. PNG SHARE CARD REDESIGN (สร้างภาพการ์ดตามข้อกำหนด 1)
   async function exportShareCardPNG() {
-    if (!latestStatement) return;
+    if (!latestStatement) {
+      alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวดนี้");
+      return;
+    }
     const r = latestStatement;
-    document.getElementById("cardMonth").innerText = `ประจำเดือน: ${formatThaiMonth(r.month)}`;
-    document.getElementById("cardNetRent").innerText = `${r.netRentAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("cardWater").innerText = `${r.waterAmount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("cardMeterRange").innerText = `${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}`;
-    document.getElementById("cardMeterCalc").innerText = `${r.usedUnit.toLocaleString("th-TH")} หน่วย @ ${r.electricSellRate} บาท`;
-    document.getElementById("cardElectricCharge").innerText = `${r.electricCharge.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
-    document.getElementById("cardTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`;
 
-    const bankText = r.bankAccount && r.bankAccount.trim() !== "" ? r.bankAccount : (currentSettings.bankAccount || "-");
-    document.getElementById("cardBankAccount").innerText = bankText;
+    document.getElementById("cardMonth").innerText = `ประจำเดือน ${formatThaiMonth(r.month)}`;
+    document.getElementById("cardIssueDate").innerText = `วันที่ออกบิล ${formatThaiDate(r.updatedAt || new Date().toISOString())}`;
+
+    const isPaid = r.paymentStatus === "paid";
+    const statusBadge = document.getElementById("cardStatusBadge");
+    if (isPaid) {
+      statusBadge.style.background = "#dcfce7";
+      statusBadge.style.color = "#15803d";
+      statusBadge.innerText = "🟢 ชำระแล้ว";
+    } else {
+      statusBadge.style.background = "#fef2f2";
+      statusBadge.style.color = "#dc2626";
+      statusBadge.innerText = "🔴 รอชำระ";
+    }
+
+    document.getElementById("cardBaseRent").innerText = `${r.baseRentAmount.toLocaleString("th-TH")} บาท`;
+    document.getElementById("cardRentDiscount").innerText = `-${r.rentDiscount.toLocaleString("th-TH")} บาท`;
+    document.getElementById("cardNetRent").innerText = `${r.netRentAmount.toLocaleString("th-TH")} บาท`;
+    document.getElementById("cardWater").innerText = `${r.waterAmount.toLocaleString("th-TH")} บาท`;
+
+    document.getElementById("cardMeterRange").innerText = `${r.previousReading.toLocaleString("th-TH")} → ${r.currentReading.toLocaleString("th-TH")}`;
+    document.getElementById("cardMeterCalc").innerText = `ใช้ไฟ ${r.usedUnit.toLocaleString("th-TH")} หน่วย × ${r.electricSellRate} บาท`;
+    document.getElementById("cardElectricCharge").innerText = `${r.electricCharge.toLocaleString("th-TH")} บาท`;
+
+    document.getElementById("cardTotalBill").innerText = `${r.totalBill.toLocaleString("th-TH")} บาท`;
+
+    const isCash = (r.paymentMethod || currentSettings.paymentMethod) === "cash";
+    const paymentArea = document.getElementById("cardPaymentInfoArea");
+    if (isCash) {
+      paymentArea.innerHTML = `<div style="font-weight: 700; color: #166534;">💵 รับชำระเงินสด</div>`;
+    } else {
+      const bankInfo = (r.bankAccount && r.bankAccount.trim() !== "") ? r.bankAccount : (currentSettings.bankAccount || "-");
+      paymentArea.innerHTML = `
+        <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">🏦 ช่องทางรับชำระ</div>
+        <div style="white-space: pre-line; color: #475569;">${bankInfo}</div>
+      `;
+    }
 
     const cardElement = document.getElementById("mobileShareCard");
     try {
-      const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true });
+      showToast("กำลังสร้างรูปภาพ...");
+      const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
       const link = document.createElement("a");
       link.download = `bill-${r.month}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      showToast("บันทึกรูปภาพสำหรับแชร์สำเร็จ!");
+      showToast("บันทึกรูปภาพสำเร็จ!");
     } catch (e) {
       alert("ไม่สามารถสร้างรูปภาพได้: " + e.message);
     }
