@@ -528,8 +528,7 @@
         <h4 class="fw-bold mb-3">ข้อมูลบิลไฟหลวง (utility_bill)</h4>
         <div class="mb-3">
           <label class="form-label fw-bold">เดือนประจำบิล</label>
-          <input type="month" class="form-control" id="billMonthInput" onchange="onManualMonthChange(this.value)">
-        </div>
+<input type="text" class="form-control" id="billMonthInput" readonly>        </div>
         <div class="mb-3">
           <label class="form-label fw-bold">อัปโหลดรูปภาพบิลไฟฟ้า</label>
           <input type="file" class="form-control" id="billImageInput" accept="image/*" capture="environment" onchange="handleBillImageUpload()">
@@ -558,8 +557,7 @@
         <h4 class="fw-bold mb-3">ข้อมูลมิเตอร์ผู้เช่า (meter_reading)</h4>
         <div class="mb-3">
           <label class="form-label fw-bold">เดือนประจำมิเตอร์</label>
-          <input type="month" class="form-control" id="meterMonthInput" onchange="onManualMonthChange(this.value)">
-        </div>
+<input type="text" class="form-control" id="meterMonthInput" readonly>        </div>
         <div class="mb-3">
           <label class="form-label fw-bold">อัปโหลดรูปมิเตอร์ไฟฟ้า (หน้าปัดกลไก)</label>
           <input type="file" class="form-control" id="meterImageInput" accept="image/*" capture="environment" onchange="handleMeterImageUpload()">
@@ -594,8 +592,7 @@
         <h4 class="fw-bold mb-3">ประมวลผลการคำนวณ (monthly_statement)</h4>
         <div class="mb-3">
           <label class="form-label fw-bold">เดือนที่ประมวลผล</label>
-          <input type="month" class="form-control" id="processMonthInput" onchange="onManualMonthChange(this.value)">
-        </div>
+<input type="text" class="form-control" id="processMonthInput" readonly>        </div>
         <div class="mb-3">
           <label class="form-label fw-bold">ส่วนลดค่าเช่าของเดือนนี้ (บาท)</label>
           <input type="number" class="form-control" id="processDiscountInput" placeholder="500" step="any" min="0">
@@ -1033,9 +1030,9 @@
     document.getElementById("stepperThaiMonth").innerText = formatThaiMonth(currentSelectedMonth);
     document.getElementById("stepperIsoMonth").innerText = currentSelectedMonth;
 
-    document.getElementById("billMonthInput").value = currentSelectedMonth;
-    document.getElementById("meterMonthInput").value = currentSelectedMonth;
-    document.getElementById("processMonthInput").value = currentSelectedMonth;
+    document.getElementById("billMonthInput").value = formatThaiMonth(currentSelectedMonth);
+document.getElementById("meterMonthInput").value = formatThaiMonth(currentSelectedMonth);
+document.getElementById("processMonthInput").value = formatThaiMonth(currentSelectedMonth);
 
     await loadUtilityBillForMonth();
     await loadMeterReadingForMonth();
