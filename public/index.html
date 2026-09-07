@@ -267,7 +267,7 @@
       --fin-muted: #4e6058;
       --fin-green: #087d5b;
       --fin-green-deep: #07503e;
-      --fin-blue: #1673b8;
+      --fin-blue: #1d4ed8;
       --fin-blue-soft: #eaf4fc;
       --fin-mint: #e7f6ee;
       --fin-canvas: #f2f6f3;
@@ -428,8 +428,7 @@
     #owner1TitleHeader, #dashOwnerShare { color: var(--fin-green) !important; }
     #owner2TitleHeader, #akuTotalShare { color: var(--fin-blue) !important; }
     #paWaterRow.invisible, #akuWaterRow.invisible { display: none !important; }
-    #tab-dashboard .border-success strong:not(#dashOwnerShare),
-    #tab-dashboard .border-info strong:not(#akuTotalShare) { color: var(--fin-value) !important; }
+   
     #tab-dashboard .border-info { background: linear-gradient(145deg, #fff 0%, var(--fin-blue-soft) 100%) !important; }
     #tab-dashboard .border-success:not(#dashStatusCard) { background: linear-gradient(145deg, #fff 0%, #f1fbf6 100%) !important; }
     #tab-dashboard > .card:nth-of-type(4) .btn-success,
@@ -503,6 +502,25 @@
       body { font-size: 1.08rem; }
       .form-control, .form-select { font-size: 1.05rem; }
       .form-label { font-size: 1rem; }
+
+      #paRentShareText,
+#akuRentShareText {
+    color: #16a34a !important;
+}
+
+#paProfitShareText,
+#akuProfitShareText {
+    color: #2563eb !important;
+}
+
+#paWaterText,
+#akuWaterText {
+    color: #ca8a04 !important;
+}
+
+#akuCostText {
+    color: #7c3aed !important;
+}
     }
   </style>
 </head>
