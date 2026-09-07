@@ -135,12 +135,17 @@ export default {
           });
         }
 
-        if (username !== adminAccount.username) {
-          return new Response(JSON.stringify({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" }), {
-            status: 401,
-            headers: JSON_HEADERS
-          });
-        }
+        if (
+  username.toLowerCase() !==
+  adminAccount.username.toLowerCase()
+) {
+  return new Response(JSON.stringify({
+    error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+  }), {
+    status: 401,
+    headers: JSON_HEADERS
+  });
+}
 
         const isPasswordCorrect = await verifyPassword(password, adminAccount.passwordHash);
         if (!isPasswordCorrect) {
