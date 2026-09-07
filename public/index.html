@@ -165,20 +165,91 @@
       white-space: nowrap;
     }
     @media print {
-      body * {
-        visibility: hidden;
-      }
-      #invoicePrintArea, #invoicePrintArea * {
-        visibility: visible;
-      }
-      #invoicePrintArea {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
+      @page {
+        size: A4 portrait;
         margin: 0;
-        padding: 20px;
       }
+
+      html,
+      body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      body > * {
+        display: none !important;
+      }
+
+      #invoiceModal {
+        display: block !important;
+        position: static !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        visibility: visible !important;
+      }
+
+      #invoiceModal:not(.show) {
+        display: none !important;
+      }
+
+      #invoiceModal .modal-dialog,
+      #invoiceModal .modal-content {
+        display: block !important;
+        position: static !important;
+        width: 210mm !important;
+        max-width: none !important;
+        height: 297mm !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        transform: none !important;
+        overflow: hidden !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        visibility: visible !important;
+      }
+
+      #invoicePrintArea {
+        display: block !important;
+        position: static !important;
+        width: 194mm !important;
+        height: 281mm !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 8mm !important;
+        box-sizing: border-box;
+        overflow: hidden !important;
+        page-break-before: auto;
+        page-break-after: auto;
+        page-break-inside: avoid;
+        break-before: auto;
+        break-after: auto;
+        break-inside: avoid;
+        visibility: visible !important;
+      }
+
+      #invoicePrintArea * {
+        visibility: visible !important;
+      }
+
+      #invoicePrintArea .list-group,
+      #invoicePrintArea .list-group-item,
+      #invoicePrintArea .card {
+        page-break-before: auto;
+        page-break-after: auto;
+        page-break-inside: avoid;
+        break-before: auto;
+        break-after: auto;
+        break-inside: avoid;
+      }
+
       .no-print {
         display: none !important;
       }
