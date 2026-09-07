@@ -390,12 +390,15 @@
       border: 0 !important;
       border-radius: var(--fin-radius) !important;
       color: #fff;
-      background: linear-gradient(135deg, #07966c 0%, #087d5b 52%, #07503e 100%) !important;
-      box-shadow: 0 16px 34px rgba(7, 80, 62, .25) !important;
+      min-height: 108px;
     }
+    #dashStatusCard.border-danger { background: linear-gradient(135deg, #c93445 0%, #a92336 52%, #7e1729 100%) !important; box-shadow: 0 16px 34px rgba(126, 23, 41, .25) !important; }
+    #dashStatusCard.border-success { background: linear-gradient(135deg, #07966c 0%, #087d5b 52%, #07503e 100%) !important; box-shadow: 0 16px 34px rgba(7, 80, 62, .25) !important; }
+    #dashStatusCard > .d-flex { flex-wrap: nowrap !important; }
+    #dashStatusCard > .d-flex > div { min-width: 0; }
     #dashStatusCard .text-muted { color: rgba(255, 255, 255, .86) !important; font-weight: 600; }
     #dashStatusCard .status-badge { color: #fff !important; text-shadow: 0 1px 1px rgba(0, 0, 0, .14); }
-    #dashStatusCard .btn { background: #fff !important; color: var(--fin-green-deep); border: 0; box-shadow: 0 4px 12px rgba(0, 0, 0, .1); }
+    #dashStatusCard .btn { flex: 0 0 9.6rem; min-width: 9.6rem; white-space: nowrap; background: #fff !important; color: var(--fin-ink); border: 0; box-shadow: 0 4px 12px rgba(0, 0, 0, .1); }
     .status-badge { font-size: 1rem; font-weight: 700; }
     .bill-receipt { background: #fff; padding: 1.35rem !important; }
     .bill-receipt h4 { color: var(--fin-ink) !important; font-size: 1.2rem; }
@@ -424,10 +427,11 @@
     #tab-dashboard .border-info { border-color: #7cb7df !important; }
     #owner1TitleHeader, #dashOwnerShare { color: var(--fin-green) !important; }
     #owner2TitleHeader, #akuTotalShare { color: var(--fin-blue) !important; }
+    #paWaterRow.invisible, #akuWaterRow.invisible { display: none !important; }
     #tab-dashboard .border-success strong:not(#dashOwnerShare),
     #tab-dashboard .border-info strong:not(#akuTotalShare) { color: var(--fin-value) !important; }
     #tab-dashboard .border-info { background: linear-gradient(145deg, #fff 0%, var(--fin-blue-soft) 100%) !important; }
-    #tab-dashboard .border-success { background: linear-gradient(145deg, #fff 0%, #f1fbf6 100%) !important; }
+    #tab-dashboard .border-success:not(#dashStatusCard) { background: linear-gradient(145deg, #fff 0%, #f1fbf6 100%) !important; }
     #tab-dashboard > .card:nth-of-type(4) .btn-success,
     #tab-dashboard > .card:nth-of-type(4) .btn-info { background: var(--fin-green) !important; border-color: var(--fin-green) !important; }
     #tab-dashboard > .card:nth-of-type(4) .btn-primary { color: var(--fin-value); background: #fff !important; border: 1px solid #b7d6c7 !important; box-shadow: none; }
@@ -465,12 +469,14 @@
       display: block !important;
       padding-right: 8rem;
     }
-    #invUsedUnitsRate {
+    #invoicePrintArea .invoice-electric-label { display: block; color: var(--fin-value); }
+    #invoicePrintArea .invoice-electric-detail {
       display: block;
       margin-top: .2rem;
       color: var(--fin-muted);
       font-size: .94rem;
       font-weight: 500;
+      white-space: nowrap;
     }
     #invElectricCharge {
       position: absolute;
@@ -1102,7 +1108,8 @@
             <span id="invUsedUnits">0 หน่วย</span>
           </div>
           <div class="list-group-item d-flex justify-content-between">
-            <span>ค่าไฟเรียกเก็บ (<span id="invUsedUnitsRate">0</span> หน่วย @ <span id="invRate">0</span> บาท)</span>
+            <span class="invoice-electric-label">ค่าไฟเรียกเก็บ</span>
+            <span class="invoice-electric-detail">(<span id="invUsedUnitsRate">0</span> หน่วย @ <span id="invRate">0</span> บาท)</span>
             <span id="invElectricCharge">0.00 บาท</span>
           </div>
           <div class="list-group-item d-flex justify-content-between fw-bold fs-5 text-primary border-top border-2">
