@@ -161,6 +161,9 @@
       padding: 10px 14px;
       margin-bottom: 8px;
     }
+    .history-owner-share {
+      white-space: nowrap;
+    }
     @media print {
       body * {
         visibility: hidden;
@@ -286,7 +289,7 @@
         ▶
       </button>
       <button class="btn btn-primary touch-target px-2 px-sm-3 fw-bold ms-2 no-print" onclick="createNewBillingPeriod()">
-        + ออกบิลใหม่
+        + งวดถัดไป
       </button>
     </div>
 
@@ -988,7 +991,6 @@
       div.className = "ios-wheel-item";
       div.dataset.month = idx + 1;
       div.innerText = m;
-      div.onclick = () => selectWheelMonth(idx + 1);
       monthCol.appendChild(div);
     });
 
@@ -998,8 +1000,29 @@
       div.className = "ios-wheel-item";
       div.dataset.year = y;
       div.innerText = y + 543;
-      div.onclick = () => selectWheelYear(y);
       yearCol.appendChild(div);
+    }
+
+    monthCol.addEventListener("scroll", () => updatePickerValueFromScroll(monthCol, "month"), { passive: true });
+    yearCol.addEventListener("scroll", () => updatePickerValueFromScroll(yearCol, "year"), { passive: true });
+  }
+
+  function updatePickerValueFromScroll(column, type) {
+    const wheelCenter = column.scrollTop + (column.clientHeight / 2);
+    const centeredItem = Array.from(column.querySelectorAll(".ios-wheel-item"))
+      .reduce((closest, item) => {
+        const itemCenter = item.offsetTop + (item.offsetHeight / 2);
+        if (!closest || Math.abs(itemCenter - wheelCenter) < Math.abs(closest.center - wheelCenter)) {
+          return { element: item, center: itemCenter };
+        }
+        return closest;
+      }, null);
+
+    if (!centeredItem) return;
+    if (type === "month") {
+      selectWheelMonth(Number(centeredItem.element.dataset.month));
+    } else {
+      selectWheelYear(Number(centeredItem.element.dataset.year));
     }
   }
 
@@ -1031,9 +1054,19 @@
 
     setTimeout(() => {
       const selMonth = document.querySelector("#wheelMonthCol .ios-wheel-item.selected");
-      if (selMonth) selMonth.scrollIntoView({ block: "center", behavior: "smooth" });
+      if (selMonth) {
+        document.getElementById("wheelMonthCol").scrollTo({
+          top: selMonth.offsetTop - 80,
+          behavior: "smooth"
+        });
+      }
       const selYear = document.querySelector("#wheelYearCol .ios-wheel-item.selected");
-      if (selYear) selYear.scrollIntoView({ block: "center", behavior: "smooth" });
+      if (selYear) {
+        document.getElementById("wheelYearCol").scrollTo({
+          top: selYear.offsetTop - 80,
+          behavior: "smooth"
+        });
+      }
     }, 150);
   }
 
@@ -2016,7 +2049,7 @@ const owner2Total =
               <td>${r.costPerUnit.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td class="fw-bold text-primary">${formatCurrency(r.totalBill)}</td>
               <td class="fw-bold text-success">
-                👨 ${formatCurrency(owner1Total)} / 👩 ${formatCurrency(owner2Total)}
+                <span class="history-owner-share">👨 ${formatCurrency(owner1Total)}</span> / <span class="history-owner-share">👩 ${formatCurrency(owner2Total)}</span>
               </td>
               <td>${statusBadge}</td>
               <td>
@@ -2042,8 +2075,8 @@ const owner2Total =
                 </div>
                 <div class="col-6">
                   <span class="text-muted small d-block">ส่วนแบ่งเจ้าของ</span>
-                  <strong class="text-success small d-block">👨 ${owner1}: ${formatCurrency(owner1Total)} บ.</strong>
-                  <strong class="text-info small d-block">👩 ${owner2}: ${formatCurrency(owner2Total)} บ.</strong>
+                  <strong class="text-success small d-block history-owner-share">👨 ${owner1}: ${formatCurrency(owner1Total)} บ.</strong>
+                  <strong class="text-info small d-block history-owner-share">👩 ${owner2}: ${formatCurrency(owner2Total)} บ.</strong>
                 </div>
                 <div class="col-6">
                   <span class="text-muted small d-block">มิเตอร์</span>
