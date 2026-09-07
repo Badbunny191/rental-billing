@@ -264,7 +264,7 @@
 
     :root {
       --fin-ink: #16362b;
-      --fin-muted: #64756e;
+      --fin-muted: #4e6058;
       --fin-green: #087d5b;
       --fin-green-deep: #07503e;
       --fin-blue: #1673b8;
@@ -273,7 +273,7 @@
       --fin-canvas: #f2f6f3;
       --fin-line: #dce8e1;
       --fin-divider: rgba(32, 73, 57, .14);
-      --fin-value: #30423b;
+      --fin-value: #25362f;
       --fin-gold: #b7791f;
       --fin-radius: 20px;
     }
@@ -287,6 +287,8 @@
       color: var(--fin-ink);
     }
     .container { max-width: 1120px; }
+    .small { font-size: .92rem !important; }
+    h3, h4, h5 { color: var(--fin-ink); }
     #section-app { padding-top: 1.25rem !important; }
     #section-app > header {
       border-bottom: 0 !important;
@@ -391,8 +393,9 @@
       background: linear-gradient(135deg, #07966c 0%, #087d5b 52%, #07503e 100%) !important;
       box-shadow: 0 16px 34px rgba(7, 80, 62, .25) !important;
     }
-    #dashStatusCard .text-muted, #dashStatusCard .status-badge { color: #fff !important; }
-    #dashStatusCard .btn { background: #fff !important; color: var(--fin-green-deep); border: 0; box-shadow: none; }
+    #dashStatusCard .text-muted { color: rgba(255, 255, 255, .86) !important; font-weight: 600; }
+    #dashStatusCard .status-badge { color: #fff !important; text-shadow: 0 1px 1px rgba(0, 0, 0, .14); }
+    #dashStatusCard .btn { background: #fff !important; color: var(--fin-green-deep); border: 0; box-shadow: 0 4px 12px rgba(0, 0, 0, .1); }
     .status-badge { font-size: 1rem; font-weight: 700; }
     .bill-receipt { background: #fff; padding: 1.35rem !important; }
     .bill-receipt h4 { color: var(--fin-ink) !important; font-size: 1.2rem; }
@@ -429,6 +432,23 @@
     #tab-dashboard > .card:nth-of-type(4) .btn-info { background: var(--fin-green) !important; border-color: var(--fin-green) !important; }
     #tab-dashboard > .card:nth-of-type(4) .btn-primary { color: var(--fin-value); background: #fff !important; border: 1px solid #b7d6c7 !important; box-shadow: none; }
     #tab-dashboard > .card:nth-of-type(4) .btn-outline-success { color: var(--fin-value) !important; border-color: #b7d6c7 !important; }
+    button[onclick="copyTenantBillLine()"], button[onclick="copyOwnerSummaryLine()"] {
+      color: var(--fin-value) !important;
+      background: #fff !important;
+      border: 1px solid #b7d6c7 !important;
+      box-shadow: none !important;
+    }
+    button[onclick="downloadShareCardPNG()"] {
+      color: var(--fin-blue) !important;
+      background: var(--fin-blue-soft) !important;
+      border: 1px solid #b8d6ec !important;
+      box-shadow: none !important;
+    }
+    button[onclick="shareCardImage()"], button[onclick="openInvoiceModal()"] {
+      color: #fff !important;
+      background: var(--fin-green) !important;
+      border-color: var(--fin-green) !important;
+    }
     .accordion-item { border: 1px solid var(--fin-line); border-radius: 12px !important; overflow: hidden; margin-bottom: .7rem; }
     .accordion-button:not(.collapsed) { color: var(--fin-green-deep); background: var(--fin-mint); box-shadow: none; }
     .accordion-button { font-size: 1.06rem; font-weight: 700; }
@@ -440,6 +460,26 @@
     .list-group-item { border-color: var(--fin-divider); padding: .85rem 0; font-size: 1.06rem; color: var(--fin-value); }
     #invoicePrintArea .text-primary { color: var(--fin-green) !important; }
     #invoicePrintArea .bg-light { background: #f4f7f5 !important; }
+    #invoicePrintArea .list-group-item:has(#invUsedUnitsRate) {
+      position: relative;
+      display: block !important;
+      padding-right: 8rem;
+    }
+    #invUsedUnitsRate {
+      display: block;
+      margin-top: .2rem;
+      color: var(--fin-muted);
+      font-size: .94rem;
+      font-weight: 500;
+    }
+    #invElectricCharge {
+      position: absolute;
+      top: .85rem;
+      right: 0;
+      color: var(--fin-value);
+      font-weight: 700;
+      white-space: nowrap;
+    }
     #invStatusBadge, #cardStatusBadge { font-size: .9rem !important; font-weight: 700 !important; padding: .35rem .65rem !important; box-shadow: none !important; }
     .badge.bg-success { background: var(--fin-green) !important; }
     .ios-bottom-sheet { border-radius: 24px 24px 0 0; }
