@@ -387,18 +387,40 @@
       box-shadow: 0 6px 14px rgba(8, 125, 91, .18);
     }
     #dashStatusCard {
-      border: 0 !important;
-      border-radius: var(--fin-radius) !important;
-      color: #fff;
+     background: #fff !important;
+     border-radius: var(--fin-radius) !important;
       min-height: 108px;
-    }
-    #dashStatusCard.border-danger { background: linear-gradient(135deg, #c93445 0%, #a92336 52%, #7e1729 100%) !important; box-shadow: 0 16px 34px rgba(126, 23, 41, .25) !important; }
-    #dashStatusCard.border-success { background: linear-gradient(135deg, #07966c 0%, #087d5b 52%, #07503e 100%) !important; box-shadow: 0 16px 34px rgba(7, 80, 62, .25) !important; }
+      }
+
+      #dashStatusCard.border-danger {
+  border: 4px solid #dc3545 !important;
+}
+
+#dashStatusCard.border-success {
+  border: 4px solid #198754 !important;
+}
+
+#dashStatusCard.border-secondary {
+  border: 4px solid #6c757d !important;
+}
     #dashStatusCard > .d-flex { flex-wrap: nowrap !important; }
     #dashStatusCard > .d-flex > div { min-width: 0; }
-    #dashStatusCard .text-muted { color: rgba(255, 255, 255, .86) !important; font-weight: 600; }
-    #dashStatusCard .status-badge { color: #fff !important; text-shadow: 0 1px 1px rgba(0, 0, 0, .14); }
-    #dashStatusCard .btn { flex: 0 0 9.6rem; min-width: 9.6rem; white-space: nowrap; background: #fff !important; color: var(--fin-ink); border: 0; box-shadow: 0 4px 12px rgba(0, 0, 0, .1); }
+    #dashStatusCard .text-muted {
+  color: #6c757d !important;
+}
+
+#dashStatusCard .status-badge {
+  text-shadow: none;
+} 
+#dashStatusCard .btn {
+  flex: 0 0 9.6rem;
+  min-width: 9.6rem;
+  white-space: nowrap;
+  background: #f8fafc !important;
+  color: var(--fin-ink);
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
     .status-badge { font-size: 1rem; font-weight: 700; }
     .bill-receipt { background: #fff; padding: 1.35rem !important; }
     .bill-receipt h4 { color: var(--fin-ink) !important; font-size: 1.2rem; }
