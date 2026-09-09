@@ -113,7 +113,9 @@ export async function createSession(env, username) {
     { expirationTtl: SESSION_TTL_SECONDS }
   );
 
-  const cookieValue = `session_token=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`;
+  // Secure flag ทำงานเฉพาะบน HTTPS (production)
+  // Local dev ผ่าน wrangler dev ใช้ HTTP จึงไม่ใส่ Secure
+  const cookieValue = `session_token=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`;
   return cookieValue;
 }
 

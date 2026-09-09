@@ -936,7 +936,7 @@
           <label class="form-label fw-bold">อัปโหลดรูปภาพบิลไฟฟ้า</label>
           <input type="file" class="form-control" id="billImageInput" accept="image/*" capture="environment" onchange="handleBillImageUpload()">
           <div id="billOcrFeedback" class="mt-2 text-muted small">
-            ℹ️ ระบบอ่านรูปภาพอัตโนมัติอยู่ระหว่างพัฒนา — สามารถกรอกตัวเลขจากบิลลงในช่องด้านล่างได้ทันที
+            📷 อัปโหลดรูปบิลไฟฟ้าเพื่อช่วยกรอกข้อมูลอัตโนมัติ
           </div>
         </div>
         <div class="mb-3">
@@ -971,7 +971,7 @@
           <label class="form-label fw-bold">อัปโหลดรูปมิเตอร์ไฟฟ้า (หน้าปัดกลไก)</label>
           <input type="file" class="form-control" id="meterImageInput" accept="image/*" capture="environment" onchange="handleMeterImageUpload()">
           <div id="meterOcrFeedback" class="mt-2 text-muted small">
-            ℹ️ ระบบอ่านรูปภาพอัตโนมัติอยู่ระหว่างพัฒนา — สามารถกรอกตัวเลขหน้าปัดลงในช่องด้านล่างได้ทันที
+            📷 อัปโหลดรูปมิเตอร์เพื่อช่วยกรอกข้อมูลอัตโนมัติ
           </div>
         </div>
         <div class="mb-3">
@@ -1264,6 +1264,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // ⚠️ DEFAULT FALLBACK - ต้องตรงกับ DEFAULT_SETTINGS ใน src/index.js
+  // ค่านี้ใช้เมื่อ API /api/settings ยังไม่มีข้อมูล
   let currentSettings = {
     baseRentAmount: 5500,
     rentDiscount: 500,
