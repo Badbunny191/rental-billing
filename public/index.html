@@ -578,7 +578,7 @@
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">รหัสผ่าน (Password)</label>
-          <input type="password" class="form-control" id="setupPassword" placeholder="ความยาว 4 ตัวขึ้นไป">
+          <input type="password" class="form-control" id="setupPassword" placeholder="ความยาว 8 ตัวขึ้นไป">
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">ยืนยันรหัสผ่าน</label>
@@ -1028,7 +1028,10 @@
         </div>
 
         <div class="accordion" id="historyAccordion">
-          <div class="text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
+          <div class="text-center text-muted py-4" id="historyLoadingState">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            กำลังโหลดข้อมูล...
+          </div>
         </div>
       </div>
     </div>
@@ -1099,10 +1102,60 @@
           บันทึกการตั้งค่า
         </button>
         <div id="settingsAlert" class="mt-3"></div>
+        
+        <!-- Backup & Restore Section -->
+        <hr class="my-4">
+        <h5 class="fw-bold text-dark mb-3">📦 สำรองและกู้คืนข้อมูล</h5>
+        
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <button class="btn btn-outline-success btn-lg w-100 touch-target" id="btnExportBackup" onclick="exportBackup()">
+              📥 สำรองข้อมูล (Export)
+            </button>
+            <small class="text-muted d-block mt-1">ดาวน์โหลดไฟล์ JSON พร้อม timestamp</small>
+          </div>
+          <div class="col-12 col-md-6">
+            <button class="btn btn-outline-warning btn-lg w-100 touch-target" id="btnRestoreBackup" onclick="openRestoreModal()">
+              📤 กู้คืนข้อมูล (Restore)
+            </button>
+            <small class="text-muted d-block mt-1">นำเข้าข้อมูลจากไฟล์ backup</small>
+          </div>
+        </div>
+        
+        <div id="backupAlert" class="mt-3"></div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Restore Preview Modal -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold">⚠️ ยืนยันการกู้คืนข้อมูล</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="restorePreviewContent">
+          <div class="text-center py-4">
+            <span class="spinner-border spinner-border-lg" role="status"></span>
+            <p class="mt-2 text-muted">กำลังตรวจสอบข้อมูล...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-lg touch-target" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-warning btn-lg touch-target" id="btnConfirmRestore" onclick="confirmRestore()" disabled>
+          ⚠️ ยืนยันการกู้คืน
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for restore -->
+<input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="handleRestoreFileSelect(event)">
 
 <!-- Modal ใบแจ้งหนี้ -->
 <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
@@ -2126,6 +2179,10 @@ ${owner2Items}
           renderDashboard(latestStatement);
         }
         await loadHistory();
+        
+        // Show success toast
+        const statusText = newStatus === "paid" ? "ชำระเงินแล้ว" : "ยกเลิกสถานะชำระแล้ว";
+        showToast(`${statusText} สำเร็จ!`);
       } else {
         alert(data.error || "เกิดข้อผิดพลาดในการอัปเดตสถานะการชำระเงิน");
       }
@@ -2138,6 +2195,14 @@ ${owner2Items}
     if (!latestStatement) return;
     const currentStatus = latestStatement.paymentStatus || "unpaid";
     const newStatus = currentStatus === "paid" ? "unpaid" : "paid";
+    
+    // Confirmation for toggling back to unpaid (destructive action)
+    if (newStatus === "unpaid") {
+      if (!confirm("ยืนยันการยกเลิกสถานะชำระเงิน?\n\nกด OK เพื่อยกเลิก หรือ Cancel เพื่อไม่ดำเนินการ")) {
+        return;
+      }
+    }
+    
     updatePaymentStatus(latestStatement.month, newStatus);
   }
 
@@ -2323,16 +2388,25 @@ const owner2Total =
 
   // History: Historical Accuracy waterReceiver & ไม่ใช้ Math.round()
   async function loadHistory() {
+    const loadingEl = document.getElementById("historyLoadingState");
+    if (loadingEl) loadingEl.style.display = "block";
+    
     try {
       const res = await fetch("/api/records");
       if (res.status === 401) {
         await checkAuthStatus();
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (loadingEl) loadingEl.innerHTML = '<div class="text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+        return;
+      }
       const records = await res.json();
       
       const accordion = document.getElementById("historyAccordion");
+      
+      if (loadingEl) loadingEl.style.display = "none";
+      
       accordion.innerHTML = "";
 
       if (records.length === 0) {
@@ -2663,6 +2737,243 @@ const owner2Total =
     } catch (e) {
       downloadShareCardPNG();
     }
+  }
+
+  // ============================================================
+  // BACKUP & RESTORE FUNCTIONS
+  // ============================================================
+
+  let pendingRestoreData = null;
+
+  async function exportBackup() {
+    const btn = document.getElementById("btnExportBackup");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่งออก...';
+
+    try {
+      const res = await fetch("/api/backup");
+      if (!res.ok) {
+        throw new Error("Export failed");
+      }
+
+      const blob = await res.blob();
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = `rental-billing-backup-${timestamp}.json`;
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`สำรองข้อมูลสำเร็จ: ${filename}`);
+    } catch (err) {
+      document.getElementById("backupAlert").innerHTML = `
+        <div class="alert alert-danger">เกิดข้อผิดพลาดในการส่งออกข้อมูล</div>
+      `;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "📥 สำรองข้อมูล (Export)";
+    }
+  }
+
+  function openRestoreModal() {
+    document.getElementById("restoreFileInput").click();
+  }
+
+  async function handleRestoreFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith(".json")) {
+      document.getElementById("backupAlert").innerHTML = `
+        <div class="alert alert-danger">กรุณาเลือกไฟล์ .json เท่านั้น</div>
+      `;
+      return;
+    }
+
+    // Show modal with loading state
+    const modal = new bootstrap.Modal(document.getElementById("restoreModal"));
+    document.getElementById("restorePreviewContent").innerHTML = `
+      <div class="text-center py-4">
+        <span class="spinner-border spinner-border-lg" role="status"></span>
+        <p class="mt-2 text-muted">กำลังตรวจสอบไฟล์...</p>
+      </div>
+    `;
+    document.getElementById("btnConfirmRestore").disabled = true;
+    modal.show();
+
+    try {
+      const text = await file.text();
+      const backupData = JSON.parse(text);
+
+      // Send preview request
+      const res = await fetch("/api/restore/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backupData })
+      });
+
+      const result = await res.json();
+
+      if (!result.valid) {
+        document.getElementById("restorePreviewContent").innerHTML = `
+          <div class="alert alert-danger">
+            <h5 class="fw-bold">❌ ไฟล์ backup ไม่ถูกต้อง</h5>
+            <ul class="mb-0 mt-2">
+              ${result.errors.map(e => `<li>${e}</li>`).join("")}
+            </ul>
+          </div>
+        `;
+        return;
+      }
+
+      pendingRestoreData = backupData;
+      renderRestorePreview(result);
+    } catch (err) {
+      document.getElementById("restorePreviewContent").innerHTML = `
+        <div class="alert alert-danger">
+          <h5 class="fw-bold">❌ ไม่สามารถอ่านไฟล์ได้</h5>
+          <p class="mb-0">${err.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  function renderRestorePreview(result) {
+    const { summary, conflicts, willOverwrite } = result;
+
+    let conflictWarning = "";
+    if (willOverwrite) {
+      conflictWarning = `
+        <div class="alert alert-warning mt-3">
+          <h6 class="fw-bold">⚠️ จะมีข้อมูลถูกเขียนทับ</h6>
+          ${conflicts.settings ? "<p class='mb-1'>• การตั้งค่าระบบปัจจุบันจะถูกเขียนทับ</p>" : ""}
+          ${conflicts.months.length > 0 ? `<p class="mb-0">• ข้อมูลเดือน ${conflicts.months.length} งวดจะถูกเขียนทับ</p>` : ""}
+          <p class="mb-0 mt-2 small text-muted">ระบบจะสำรองข้อมูลปัจจุบันก่อนเขียนทับอัตโนมัติ</p>
+        </div>
+      `;
+    }
+
+    document.getElementById("restorePreviewContent").innerHTML = `
+      <h5 class="fw-bold text-dark mb-3">📋 สรุปข้อมูลในไฟล์ Backup</h5>
+      
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="card text-center bg-light">
+            <div class="card-body py-2">
+              <div class="fw-bold text-primary fs-4">${summary.utilityBillsCount}</div>
+              <small class="text-muted">บิลไฟหลวง</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center bg-light">
+            <div class="card-body py-2">
+              <div class="fw-bold text-success fs-4">${summary.meterReadingsCount}</div>
+              <small class="text-muted">ข้อมูลมิเตอร์</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center bg-light">
+            <div class="card-body py-2">
+              <div class="fw-bold text-info fs-4">${summary.monthlyStatementsCount}</div>
+              <small class="text-muted">รายการคำนวณ</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center ${summary.hasSettings ? "bg-success text-white" : "bg-light"}">
+            <div class="card-body py-2">
+              <div class="fw-bold fs-4">${summary.hasSettings ? "✓" : "✗"}</div>
+              <small>การตั้งค่า</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      ${summary.months.length > 0 ? `
+        <div class="mb-3">
+          <h6 class="fw-bold">เดือนที่จะถูกนำเข้า:</h6>
+          <div class="d-flex flex-wrap gap-1">
+            ${summary.months.map(m => `
+              <span class="badge bg-secondary">${formatThaiMonth(m)}</span>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+      
+      ${conflictWarning}
+      
+      <div class="alert alert-info mt-3">
+        <p class="mb-1"><strong>ข้อควรทราบ:</strong></p>
+        <ul class="mb-0 small">
+          <li>ข้อมูลจะถูกนำเข้าทั้งหมดในครั้งเดียว (ไม่มี partial import)</li>
+          <li>ระบบจะสำรองข้อมูลปัจจุบันก่อนเขียนทับโดยอัตโนมัติ</li>
+          <li>การกู้คืนจะไม่กระทบกับข้อมูลที่ไม่มีในไฟล์ backup</li>
+        </ul>
+      </div>
+    `;
+
+    document.getElementById("btnConfirmRestore").disabled = false;
+  }
+
+  async function confirmRestore() {
+    if (!pendingRestoreData) return;
+
+    const btn = document.getElementById("btnConfirmRestore");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังกู้คืน...';
+
+    try {
+      const res = await fetch("/api/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backupData: pendingRestoreData })
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || "Restore failed");
+      }
+
+      // Close modal
+      bootstrap.Modal.getInstance(document.getElementById("restoreModal")).hide();
+
+      // Show success message
+      document.getElementById("backupAlert").innerHTML = `
+        <div class="alert alert-success">
+          <h5 class="fw-bold">✅ กู้คืนข้อมูลสำเร็จ!</h5>
+          <p class="mb-1">นำเข้าข้อมูล ${result.importedMonths.length} งวดแล้ว</p>
+          <small class="text-muted">เวลาที่นำเข้า: ${formatThaiDate(result.importedAt)}</small>
+        </div>
+      `;
+
+      // Reload data
+      await loadSettings();
+      await loadHistory();
+      if (result.importedMonths.includes(currentSelectedMonth)) {
+        await updateMonthViews();
+      }
+
+      showToast(`กู้คืนข้อมูลสำเร็จ ${result.importedMonths.length} งวด!`);
+
+    } catch (err) {
+      document.getElementById("backupAlert").innerHTML = `
+        <div class="alert alert-danger">เกิดข้อผิดพลาด: ${err.message}</div>
+      `;
+      btn.disabled = false;
+      btn.innerHTML = "⚠️ ยืนยันการกู้คืน";
+    }
+
+    pendingRestoreData = null;
   }
 </script>
 
