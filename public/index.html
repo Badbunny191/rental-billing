@@ -18,6 +18,65 @@
       align-items: center;
       justify-content: center;
     }
+    
+    /* Analytics Responsive Styles */
+    .analytics-section-title {
+      font-size: 1rem;
+    }
+    @media (min-width: 768px) {
+      .analytics-section-title {
+        font-size: 1.25rem;
+      }
+    }
+    
+    /* Table responsive wrapper */
+    .table-wrapper {
+      border-radius: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-wrapper thead th,
+    .table-wrapper tbody td {
+      white-space: nowrap;
+      font-size: 0.85rem;
+    }
+    @media (max-width: 575.98px) {
+      .table-wrapper {
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+        border-radius: 0;
+      }
+      .table-wrapper table {
+        font-size: 0.8rem;
+      }
+    }
+    
+    /* Chart container - prevent compression */
+    .chart-container {
+      min-height: 280px;
+      width: 100%;
+    }
+    
+    /* Analytics cards spacing */
+    .analytics-card {
+      transition: transform 0.2s ease;
+    }
+    .analytics-card:active {
+      transform: scale(0.98);
+    }
+    
+    /* Progress bar on mobile */
+    @media (max-width: 575.98px) {
+      .progress {
+        height: 12px !important;
+        border-radius: 6px;
+      }
+    }
+    
+    /* Small text helper */
+    .small-small {
+      font-size: 0.75rem;
+    }
     .form-control, .form-select {
       font-size: 1.2rem;
       min-height: 48px;
@@ -680,6 +739,9 @@
         <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-history" type="button">รายงานย้อนหลัง</button>
       </li>
       <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-analytics" type="button">📊 สถิติ</button>
+      </li>
+      <li class="nav-item">
         <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-settings" type="button">ตั้งค่า</button>
       </li>
     </ul>
@@ -1036,7 +1098,258 @@
       </div>
     </div>
 
-    <!-- 6. ตั้งค่า -->
+    <!-- 6. สถิติและรายงาน -->
+    <div class="tab-pane fade" id="tab-analytics" role="tabpanel">
+      <div class="card p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4 class="fw-bold m-0">📊 สถิติและรายงาน</h4>
+          <button class="btn btn-outline-primary btn-sm touch-target" onclick="refreshAnalytics()">
+            🔄 รีเฟรช
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="analyticsLoading" class="text-center py-5">
+          <span class="spinner-border spinner-border-lg text-primary" role="status"></span>
+          <p class="mt-2 text-muted">กำลังโหลดข้อมูลสถิติ...</p>
+        </div>
+
+        <!-- No Data State -->
+        <div id="analyticsNoData" class="text-center py-5 d-none">
+          <div class="text-muted mb-3">
+            <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+            </svg>
+          </div>
+          <h5 class="text-muted">ยังไม่มีข้อมูลสถิติ</h5>
+          <p class="text-muted small">กรุณาบันทึกข้อมูลการคำนวณก่อน</p>
+        </div>
+
+        <!-- Analytics Content -->
+        <div id="analyticsContent" class="d-none">
+          <!-- Revenue Summary Cards -->
+          <h5 class="fw-bold text-primary mb-2 mb-md-3">💰 สรุปรายได้</h5>
+          <div class="row g-2 g-md-3 mb-3 mb-md-4">
+            <div class="col-4">
+              <div class="card border-primary h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1">รวมทั้งหมด</div>
+                  <div class="fw-bold text-primary fs-5 fs-sm-4" id="analyticsTotalRevenue">-</div>
+                  <div class="small text-muted">บาท</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="card border-success h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1">ปีนี้</div>
+                  <div class="fw-bold text-success fs-5 fs-sm-4" id="analyticsYearRevenue">-</div>
+                  <div class="small text-muted">บาท</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="card border-info h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1" id="analyticsMonthLabel">-</div>
+                  <div class="fw-bold text-info fs-5 fs-sm-4" id="analyticsMonthRevenue">-</div>
+                  <div class="small text-muted">บาท</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Owner Income Summary -->
+          <h5 class="fw-bold text-primary mb-2 mb-md-3">👥 สรุปรายได้เจ้าของ</h5>
+          <div class="row g-2 g-md-3 mb-3 mb-md-4">
+            <!-- Owner 1 Card -->
+            <div class="col-12 col-md-6">
+              <div class="card border-success h-100">
+                <div class="card-header bg-success text-white py-2">
+                  <span class="fw-bold" id="analyticsOwner1Name">ป๊า</span>
+                </div>
+                <div class="card-body py-2 py-sm-3">
+                  <div class="row g-2 text-center">
+                    <div class="col-4">
+                      <div class="small text-muted mb-1">รวมทั้งหมด</div>
+                      <div class="fw-bold text-success fs-5" id="analyticsOwner1Total">-</div>
+                      <div class="small text-muted">บาท</div>
+                    </div>
+                    <div class="col-4">
+                      <div class="small text-muted mb-1">ปีนี้</div>
+                      <div class="fw-bold text-success fs-5" id="analyticsOwner1Year">-</div>
+                      <div class="small text-muted">บาท</div>
+                    </div>
+                    <div class="col-4">
+                      <div class="small text-muted mb-1" id="analyticsOwner1MonthLabel">-</div>
+                      <div class="fw-bold text-success fs-5" id="analyticsOwner1Month">-</div>
+                      <div class="small text-muted">บาท</div>
+                    </div>
+                  </div>
+                  <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" id="analyticsOwner1Percent" style="width: 50%"></div>
+                  </div>
+                  <div class="text-center small text-muted mt-1" id="analyticsOwner1PercentText">50%</div>
+                </div>
+              </div>
+            </div>
+            <!-- Owner 2 Card -->
+            <div class="col-12 col-md-6">
+              <div class="card border-primary h-100">
+                <div class="card-header bg-primary text-white py-2">
+                  <span class="fw-bold" id="analyticsOwner2Name">อากู้</span>
+                </div>
+                <div class="card-body py-2 py-sm-3">
+                  <div class="row g-2 text-center">
+                    <div class="col-4">
+                      <div class="small text-muted mb-1">รวมทั้งหมด</div>
+                      <div class="fw-bold text-primary fs-5" id="analyticsOwner2Total">-</div>
+                      <div class="small text-muted">บาท</div>
+                    </div>
+                    <div class="col-4">
+                      <div class="small text-muted mb-1">ปีนี้</div>
+                      <div class="fw-bold text-primary fs-5" id="analyticsOwner2Year">-</div>
+                      <div class="small text-muted">บาท</div>
+                    </div>
+                    <div class="col-4">
+                      <div class="small text-muted mb-1" id="analyticsOwner2MonthLabel">-</div>
+                      <div class="fw-bold text-primary fs-5" id="analyticsOwner2Month">-</div>
+                      <div class="small text-muted">บาท</div>
+                    </div>
+                  </div>
+                  <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-primary" id="analyticsOwner2Percent" style="width: 50%"></div>
+                  </div>
+                  <div class="text-center small text-muted mt-1" id="analyticsOwner2PercentText">50%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Electricity Analytics -->
+          <h5 class="fw-bold text-primary mb-2 mb-md-3">⚡ สถิติไฟฟ้า</h5>
+          <div class="row g-2 g-md-3 mb-3 mb-md-4">
+            <div class="col-6 col-md-3">
+              <div class="card border-warning h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1">เฉลี่ย/เดือน</div>
+                  <div class="fw-bold text-warning fs-5" id="analyticsAvgUsage">-</div>
+                  <div class="small text-muted">หน่วย</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card border-danger h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1">ใช้มากสุด</div>
+                  <div class="fw-bold text-danger fs-5" id="analyticsHighUsage">-</div>
+                  <div class="small text-muted" id="analyticsHighMonth">-</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card border-success h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1">ใช้น้อยสุด</div>
+                  <div class="fw-bold text-success fs-5" id="analyticsLowUsage">-</div>
+                  <div class="small text-muted" id="analyticsLowMonth">-</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card border-secondary h-100">
+                <div class="card-body py-2 py-sm-3 text-center">
+                  <div class="small text-muted mb-1">รวมทั้งหมด</div>
+                  <div class="fw-bold text-secondary fs-5" id="analyticsTotalUsage">-</div>
+                  <div class="small text-muted">หน่วย</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Section -->
+          <h5 class="fw-bold text-primary mb-2 mb-md-3">📈 กราฟแนวโน้ม</h5>
+          <div class="row g-3 mb-3 mb-md-4">
+            <div class="col-12 col-lg-6">
+              <div class="card h-100">
+                <div class="card-header py-2 py-sm-3 bg-white">
+                  <h6 class="fw-bold mb-0 text-center text-lg-start">รายได้รายเดือน</h6>
+                </div>
+                <div class="card-body p-2 p-sm-3">
+                  <div class="chart-container" style="position: relative; height: 280px;">
+                    <canvas id="revenueChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-6">
+              <div class="card h-100">
+                <div class="card-header py-2 py-sm-3 bg-white">
+                  <h6 class="fw-bold mb-0 text-center text-lg-start">เปรียบเทียบรายได้เจ้าของ</h6>
+                </div>
+                <div class="card-body p-2 p-sm-3">
+                  <div class="chart-container" style="position: relative; height: 280px;">
+                    <canvas id="ownerChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3 mb-3 mb-md-4">
+            <div class="col-12">
+              <div class="card h-100">
+                <div class="card-header py-2 py-sm-3 bg-white">
+                  <h6 class="fw-bold mb-0 text-center">ปริมาณการใช้ไฟฟ้า</h6>
+                </div>
+                <div class="card-body p-2 p-sm-3">
+                  <div class="chart-container" style="position: relative; height: 280px;">
+                    <canvas id="usageChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monthly Revenue Table -->
+          <h5 class="fw-bold text-primary mb-2 mb-md-3">📋 ตารางรายได้รายเดือน</h5>
+          <div class="d-block d-md-none text-center text-muted small mb-2">
+            ← เลื่อนดูเพิ่มเติม →
+          </div>
+          <div class="table-responsive table-wrapper mb-3 mb-md-4">
+            <table class="table table-sm table-striped table-hover mb-0">
+              <thead class="table-dark position-sticky top-0">
+                <tr>
+                  <th class="text-nowrap">เดือน</th>
+                  <th class="text-end text-nowrap">ค่าเช่า</th>
+                  <th class="text-end text-nowrap">ไฟฟ้า</th>
+                  <th class="text-end text-nowrap">รวม</th>
+                  <th class="text-end text-nowrap" id="analyticsTableOwner1Col">ป๊า</th>
+                  <th class="text-end text-nowrap" id="analyticsTableOwner2Col">อากู้</th>
+                  <th class="text-center text-nowrap">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="analyticsTableBody">
+                <!-- Filled by JS -->
+              </tbody>
+              <tfoot class="table-secondary fw-bold">
+                <tr>
+                  <td class="text-nowrap">รวม</td>
+                  <td class="text-end text-nowrap" id="analyticsTableTotalRent">-</td>
+                  <td class="text-end text-nowrap" id="analyticsTableTotalElectric">-</td>
+                  <td class="text-end text-nowrap" id="analyticsTableTotalBill">-</td>
+                  <td class="text-end text-nowrap" id="analyticsTableTotalOwner1">-</td>
+                  <td class="text-end text-nowrap" id="analyticsTableTotalOwner2">-</td>
+                  <td class="text-center text-nowrap" id="analyticsTablePaidStatus">-</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. ตั้งค่า -->
     <div class="tab-pane fade" id="tab-settings" role="tabpanel">
       <div class="card p-4">
         <h4 class="fw-bold mb-3">ตั้งค่าระบบ (settings)</h4>
@@ -1315,6 +1628,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   // ⚠️ DEFAULT FALLBACK - ต้องตรงกับ DEFAULT_SETTINGS ใน src/index.js
@@ -1348,6 +1662,14 @@
     currentSelectedMonth = "";
     initWheelPickerOptions();
     await checkAuthStatus();
+
+    // Listen for tab changes to load analytics
+    const analyticsTab = document.querySelector('[data-bs-target="#tab-analytics"]');
+    if (analyticsTab) {
+      analyticsTab.addEventListener("shown.bs.tab", () => {
+        loadAnalytics();
+      });
+    }
   });
 
   function formatThaiMonth(monthStr) {
@@ -1865,6 +2187,285 @@ ${owner2Items}
     } finally {
       await setBtnLoading("btnLogout", false);
     }
+  }
+
+  // ============================================================
+  // ANALYTICS FUNCTIONS
+  // ============================================================
+
+  let analyticsData = null;
+  let revenueChart = null;
+  let ownerChart = null;
+  let usageChart = null;
+
+  async function loadAnalytics() {
+    const loading = document.getElementById("analyticsLoading");
+    const noData = document.getElementById("analyticsNoData");
+    const content = document.getElementById("analyticsContent");
+
+    loading.classList.remove("d-none");
+    noData.classList.add("d-none");
+    content.classList.add("d-none");
+
+    try {
+      const res = await fetch("/api/analytics");
+      if (!res.ok) throw new Error("Failed to load analytics");
+
+      analyticsData = await res.json();
+
+      loading.classList.add("d-none");
+
+      if (!analyticsData.summary.hasData) {
+        noData.classList.remove("d-none");
+        return;
+      }
+
+      content.classList.remove("d-none");
+      renderAnalyticsData(analyticsData);
+      renderCharts(analyticsData);
+
+    } catch (err) {
+      console.error("Analytics error:", err);
+      loading.innerHTML = `
+        <div class="text-danger">
+          <p>เกิดข้อผิดพลาดในการโหลดข้อมูลสถิติ</p>
+          <button class="btn btn-sm btn-outline-danger" onclick="loadAnalytics()">ลองใหม่</button>
+        </div>
+      `;
+    }
+  }
+
+  function refreshAnalytics() {
+    loadAnalytics();
+  }
+
+  function formatThaiMonth(monthStr) {
+    if (!monthStr || !monthStr.includes("-")) return monthStr;
+    const [year, month] = monthStr.split("-").map(Number);
+    const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    return `${thaiMonths[month - 1]} ${year + 543}`;
+  }
+
+  function formatAnalyticsCurrency(val) {
+    return (Number(val) || 0).toLocaleString("th-TH", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  }
+
+  function renderAnalyticsData(data) {
+    const { revenue, owners, electricity, monthly } = data;
+
+    // Revenue cards
+    document.getElementById("analyticsTotalRevenue").innerText = formatAnalyticsCurrency(revenue.total);
+    document.getElementById("analyticsYearRevenue").innerText = formatAnalyticsCurrency(revenue.totalThisYear);
+
+    // Get latest month from data (breakdown is sorted newest first)
+    const latestMonth = monthly.breakdown.length > 0
+      ? monthly.breakdown[0].month
+      : null;
+    document.getElementById("analyticsMonthLabel").innerText = latestMonth 
+      ? `ล่าสุด (${formatThaiMonth(latestMonth).split(' ')[0]})` 
+      : 'ล่าสุด';
+    document.getElementById("analyticsMonthRevenue").innerText = latestMonth
+      ? formatAnalyticsCurrency(monthly.breakdown[0].tenantBill)
+      : '-';
+
+    // Owner 1
+    document.getElementById("analyticsOwner1Name").innerText = owners.owner1.name;
+    document.getElementById("analyticsOwner1Total").innerText = formatAnalyticsCurrency(owners.owner1.totalIncome);
+    document.getElementById("analyticsOwner1Year").innerText = formatAnalyticsCurrency(owners.owner1.incomeThisYear);
+    document.getElementById("analyticsOwner1MonthLabel").innerText = latestMonth
+      ? formatThaiMonth(latestMonth).split(' ')[0]
+      : '-';
+    document.getElementById("analyticsOwner1Month").innerText = latestMonth
+      ? formatAnalyticsCurrency(monthly.breakdown[0].owner1Share)
+      : '-';
+    document.getElementById("analyticsOwner1Percent").style.width = owners.owner1.percentage + "%";
+    document.getElementById("analyticsOwner1PercentText").innerText = owners.owner1.percentage + "%";
+
+    // Owner 2
+    document.getElementById("analyticsOwner2Name").innerText = owners.owner2.name;
+    document.getElementById("analyticsOwner2Total").innerText = formatAnalyticsCurrency(owners.owner2.totalIncome);
+    document.getElementById("analyticsOwner2Year").innerText = formatAnalyticsCurrency(owners.owner2.incomeThisYear);
+    document.getElementById("analyticsOwner2MonthLabel").innerText = latestMonth
+      ? formatThaiMonth(latestMonth).split(' ')[0]
+      : '-';
+    document.getElementById("analyticsOwner2Month").innerText = latestMonth
+      ? formatAnalyticsCurrency(monthly.breakdown[0].owner2Share)
+      : '-';
+    document.getElementById("analyticsOwner2Percent").style.width = owners.owner2.percentage + "%";
+    document.getElementById("analyticsOwner2PercentText").innerText = owners.owner2.percentage + "%";
+
+    // Electricity stats
+    document.getElementById("analyticsAvgUsage").innerText = formatAnalyticsCurrency(electricity.averageMonthlyUsage);
+    document.getElementById("analyticsHighUsage").innerText = formatAnalyticsCurrency(electricity.highestUsage);
+    document.getElementById("analyticsHighMonth").innerText = formatThaiMonth(electricity.highestUsageMonth);
+    document.getElementById("analyticsLowUsage").innerText = formatAnalyticsCurrency(electricity.lowestUsage);
+    document.getElementById("analyticsLowMonth").innerText = formatThaiMonth(electricity.lowestUsageMonth);
+    document.getElementById("analyticsTotalUsage").innerText = formatAnalyticsCurrency(electricity.totalUsage);
+
+    // Table headers with owner names
+    document.getElementById("analyticsTableOwner1Col").innerText = owners.owner1.name;
+    document.getElementById("analyticsTableOwner2Col").innerText = owners.owner2.name;
+
+    // Render table
+    const tbody = document.getElementById("analyticsTableBody");
+    tbody.innerHTML = "";
+
+    let totalRent = 0;
+    let totalElectric = 0;
+    let totalBill = 0;
+    let totalOwner1 = 0;
+    let totalOwner2 = 0;
+    let paidCount = 0;
+
+    for (const row of monthly.breakdown) {
+      const netRent = row.tenantBill - row.electricCharge - 100; // Approximate
+      totalRent += netRent > 0 ? netRent : 0;
+      totalElectric += row.electricCharge;
+      totalBill += row.tenantBill;
+      totalOwner1 += row.owner1Share;
+      totalOwner2 += row.owner2Share;
+      if (row.isPaid) paidCount++;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${formatThaiMonth(row.month)}</td>
+        <td class="text-end">${formatAnalyticsCurrency(netRent > 0 ? netRent : 0)}</td>
+        <td class="text-end">${formatAnalyticsCurrency(row.electricCharge)}</td>
+        <td class="text-end fw-bold">${formatAnalyticsCurrency(row.tenantBill)}</td>
+        <td class="text-end text-success">${formatAnalyticsCurrency(row.owner1Share)}</td>
+        <td class="text-end text-primary">${formatAnalyticsCurrency(row.owner2Share)}</td>
+        <td class="text-center">
+          ${row.isPaid
+            ? '<span class="badge bg-success">ชำระแล้ว</span>'
+            : '<span class="badge bg-danger">รอ</span>'}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // Totals row
+    document.getElementById("analyticsTableTotalRent").innerText = formatAnalyticsCurrency(totalRent);
+    document.getElementById("analyticsTableTotalElectric").innerText = formatAnalyticsCurrency(totalElectric);
+    document.getElementById("analyticsTableTotalBill").innerText = formatAnalyticsCurrency(totalBill);
+    document.getElementById("analyticsTableTotalOwner1").innerText = formatAnalyticsCurrency(totalOwner1);
+    document.getElementById("analyticsTableTotalOwner2").innerText = formatAnalyticsCurrency(totalOwner2);
+    document.getElementById("analyticsTablePaidStatus").innerText = `${paidCount}/${monthly.breakdown.length}`;
+  }
+
+  function renderCharts(data) {
+    const { chart } = data;
+
+    // Destroy existing charts
+    if (revenueChart) revenueChart.destroy();
+    if (ownerChart) ownerChart.destroy();
+    if (usageChart) usageChart.destroy();
+
+    const chartLabels = chart.labels.map(m => formatThaiMonth(m));
+
+    // Revenue Trend Chart
+    const revenueCtx = document.getElementById("revenueChart").getContext("2d");
+    revenueChart = new Chart(revenueCtx, {
+      type: "bar",
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: "รายได้รวม (บาท)",
+          data: chart.revenueData,
+          backgroundColor: "#198754",
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 500
+        },
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (val) => formatAnalyticsCurrency(val)
+            }
+          }
+        }
+      }
+    });
+
+    // Owner Comparison Chart
+    const ownerCtx = document.getElementById("ownerChart").getContext("2d");
+    ownerChart = new Chart(ownerCtx, {
+      type: "doughnut",
+      data: {
+        labels: [data.owners.owner1.name, data.owners.owner2.name],
+        datasets: [{
+          data: [data.owners.owner1.totalIncome, data.owners.owner2.totalIncome],
+          backgroundColor: ["#198754", "#0d6efd"]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 500
+        },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              padding: 15,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => formatAnalyticsCurrency(ctx.raw)
+            }
+          }
+        }
+      }
+    });
+
+    // Electricity Usage Chart
+    const usageCtx = document.getElementById("usageChart").getContext("2d");
+    usageChart = new Chart(usageCtx, {
+      type: "line",
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: "หน่วย",
+          data: chart.usageData,
+          borderColor: "#ffc107",
+          backgroundColor: "rgba(255, 193, 7, 0.2)",
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
   }
 
   async function initializeApp() {

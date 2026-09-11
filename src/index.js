@@ -477,7 +477,231 @@ export default {
       }
 
       // -------------------------------------------------------------
-      // 10. BACKUP & RESTORE ROUTES
+      // 10. ANALYTICS ROUTES
+      // -------------------------------------------------------------
+      if (url.pathname === "/api/analytics" && method === "GET") {
+        // Get settings for owner names
+        const settings = await env.HOUSE_RENT_KV.get("settings", { type: "json" }) || DEFAULT_SETTINGS;
+
+        // Get all statements
+        const statementList = await env.HOUSE_RENT_KV.list({ prefix: "monthly_statement:" });
+        const statements = await Promise.all(
+          statementList.keys.map((k) => env.HOUSE_RENT_KV.get(k.name, { type: "json" }))
+        );
+        const validStatements = statements.filter((s) => s !== null);
+
+        // Get all meter readings for usage analytics
+        const meterList = await env.HOUSE_RENT_KV.list({ prefix: "meter_reading:" });
+        const meterReadings = {};
+        await Promise.all(meterList.keys.map(async (k) => {
+          const month = k.name.replace("meter_reading:", "");
+          const data = await env.HOUSE_RENT_KV.get(k.name, { type: "json" });
+          if (data) meterReadings[month] = data;
+        }));
+
+        // Calculate owner shares
+        const owner1Name = settings.owner1Name || "ป๊า";
+        const owner2Name = settings.owner2Name || "อากู้";
+        const waterReceiver = settings.waterReceiver || "owner2";
+
+        // Initialize analytics
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+        let totalRevenue = 0;
+        let totalRevenueThisYear = 0;
+        let totalRevenueThisMonth = 0;
+
+        let totalOwner1Income = 0;
+        let totalOwner1IncomeThisYear = 0;
+        let totalOwner1IncomeThisMonth = 0;
+
+        let totalOwner2Income = 0;
+        let totalOwner2IncomeThisYear = 0;
+        let totalOwner2IncomeThisMonth = 0;
+
+        let totalElectricityUsage = 0;
+        const monthlyUsage = [];
+        const monthlyBreakdown = [];
+
+        // Process each statement
+        for (const stmt of validStatements) {
+          const month = stmt.month;
+          const [year, monthNum] = month.split("-").map(Number);
+          const isThisYear = year === currentYear;
+          const isThisMonth = month === currentMonth;
+
+          // Revenue
+          totalRevenue += stmt.totalBill || 0;
+          if (isThisYear) totalRevenueThisYear += stmt.totalBill || 0;
+          if (isThisMonth) totalRevenueThisMonth += stmt.totalBill || 0;
+
+          // Calculate owner shares
+          const netRentAmount = stmt.netRentAmount || 0;
+          const electricProfit = stmt.electricProfit || 0;
+          const actualElectricCost = stmt.actualElectricCost || 0;
+          const waterAmount = stmt.waterAmount || 0;
+
+          const rentHalf = netRentAmount / 2;
+          const profitHalf = electricProfit / 2;
+
+          let owner1Share = rentHalf + profitHalf;
+          let owner2Share = rentHalf + profitHalf + actualElectricCost;
+
+          // Add water to the designated receiver
+          if (waterReceiver === "owner1") {
+            owner1Share += waterAmount;
+          } else {
+            owner2Share += waterAmount;
+          }
+
+          // Owner 1 income
+          totalOwner1Income += owner1Share;
+          if (isThisYear) totalOwner1IncomeThisYear += owner1Share;
+          if (isThisMonth) totalOwner1IncomeThisMonth += owner1Share;
+
+          // Owner 2 income
+          totalOwner2Income += owner2Share;
+          if (isThisYear) totalOwner2IncomeThisYear += owner2Share;
+          if (isThisMonth) totalOwner2IncomeThisMonth += owner2Share;
+
+          // Electricity usage
+          const usedUnit = stmt.usedUnit || 0;
+          totalElectricityUsage += usedUnit;
+          monthlyUsage.push({ month, usedUnit });
+
+          // Monthly breakdown
+          monthlyBreakdown.push({
+            month,
+            tenantBill: stmt.totalBill || 0,
+            owner1Share: Math.round(owner1Share * 100) / 100,
+            owner2Share: Math.round(owner2Share * 100) / 100,
+            owner1Name,
+            owner2Name,
+            paymentStatus: stmt.paymentStatus || "unpaid",
+            electricUsage: usedUnit,
+            electricCharge: stmt.electricCharge || 0,
+            isPaid: stmt.paymentStatus === "paid"
+          });
+        }
+
+        // Sort monthly breakdown by month (descending)
+        monthlyBreakdown.sort((a, b) => b.month.localeCompare(a.month));
+
+        // Calculate statistics
+        const paidStatements = validStatements.filter((s) => s.paymentStatus === "paid");
+        const paidRevenue = paidStatements.reduce((sum, s) => sum + (s.totalBill || 0), 0);
+        const unpaidRevenue = totalRevenue - paidRevenue;
+
+        // Owner percentage shares (all time)
+        const totalOwnerIncome = totalOwner1Income + totalOwner2Income;
+        const owner1Percentage = totalOwnerIncome > 0 ? (totalOwner1Income / totalOwnerIncome) * 100 : 50;
+        const owner2Percentage = totalOwnerIncome > 0 ? (totalOwner2Income / totalOwnerIncome) * 100 : 50;
+
+        // Electricity statistics
+        const avgMonthlyUsage = monthlyUsage.length > 0
+          ? totalElectricityUsage / monthlyUsage.length
+          : 0;
+
+        let highestUsageMonth = null;
+        let lowestUsageMonth = null;
+        let highestUsage = 0;
+        let lowestUsage = Infinity;
+
+        for (const item of monthlyUsage) {
+          if (item.usedUnit >= highestUsage) {
+            highestUsage = item.usedUnit;
+            highestUsageMonth = item.month;
+          }
+          if (item.usedUnit <= lowestUsage) {
+            lowestUsage = item.usedUnit;
+            lowestUsageMonth = item.month;
+          }
+        }
+
+        if (lowestUsage === Infinity) lowestUsage = 0;
+        if (!highestUsageMonth) highestUsageMonth = monthlyUsage[0]?.month || null;
+        if (!lowestUsageMonth) lowestUsageMonth = monthlyUsage[0]?.month || null;
+
+        // Last 12 months for table
+        const last12Months = monthlyBreakdown.slice(0, 12);
+
+        // Calculate totals for last 12 months
+        const totals12Months = last12Months.reduce((acc, m) => ({
+          tenantBill: acc.tenantBill + m.tenantBill,
+          owner1Share: acc.owner1Share + m.owner1Share,
+          owner2Share: acc.owner2Share + m.owner2Share,
+          paidCount: acc.paidCount + (m.isPaid ? 1 : 0),
+          totalCount: acc.totalCount + 1
+        }), { tenantBill: 0, owner1Share: 0, owner2Share: 0, paidCount: 0, totalCount: 0 });
+
+        // Chart data: last 12 months for trend
+        const chartData = monthlyBreakdown.slice(0, 12).reverse();
+
+        const analyticsResponse = {
+          revenue: {
+            total: Math.round(totalRevenue * 100) / 100,
+            totalThisYear: Math.round(totalRevenueThisYear * 100) / 100,
+            totalThisMonth: Math.round(totalRevenueThisMonth * 100) / 100,
+            paidRevenue: Math.round(paidRevenue * 100) / 100,
+            unpaidRevenue: Math.round(unpaidRevenue * 100) / 100
+          },
+          owners: {
+            owner1: {
+              name: owner1Name,
+              totalIncome: Math.round(totalOwner1Income * 100) / 100,
+              incomeThisYear: Math.round(totalOwner1IncomeThisYear * 100) / 100,
+              incomeThisMonth: Math.round(totalOwner1IncomeThisMonth * 100) / 100,
+              percentage: Math.round(owner1Percentage * 10) / 10
+            },
+            owner2: {
+              name: owner2Name,
+              totalIncome: Math.round(totalOwner2Income * 100) / 100,
+              incomeThisYear: Math.round(totalOwner2IncomeThisYear * 100) / 100,
+              incomeThisMonth: Math.round(totalOwner2IncomeThisMonth * 100) / 100,
+              percentage: Math.round(owner2Percentage * 10) / 10
+            }
+          },
+          electricity: {
+            totalUsage: totalElectricityUsage,
+            averageMonthlyUsage: Math.round(avgMonthlyUsage * 10) / 10,
+            highestUsageMonth,
+            highestUsage,
+            lowestUsageMonth,
+            lowestUsage,
+            totalStatements: validStatements.length
+          },
+          monthly: {
+            breakdown: last12Months,
+            totals: {
+              tenantBill: Math.round(totals12Months.tenantBill * 100) / 100,
+              owner1Share: Math.round(totals12Months.owner1Share * 100) / 100,
+              owner2Share: Math.round(totals12Months.owner2Share * 100) / 100,
+              paidCount: totals12Months.paidCount,
+              totalCount: totals12Months.totalCount
+            }
+          },
+          chart: {
+            labels: chartData.map((m) => m.month),
+            revenueData: chartData.map((m) => m.tenantBill),
+            owner1Data: chartData.map((m) => m.owner1Share),
+            owner2Data: chartData.map((m) => m.owner2Share),
+            usageData: chartData.map((m) => m.electricUsage)
+          },
+          summary: {
+            totalStatements: validStatements.length,
+            paidStatements: paidStatements.length,
+            unpaidStatements: validStatements.length - paidStatements.length,
+            hasData: validStatements.length > 0
+          }
+        };
+
+        return new Response(JSON.stringify(analyticsResponse), { headers: JSON_HEADERS });
+      }
+
+      // -------------------------------------------------------------
+      // 11. BACKUP & RESTORE ROUTES
       // -------------------------------------------------------------
       
       // Export all data as JSON

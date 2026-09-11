@@ -10,6 +10,7 @@ Thai rental-billing application for recording a utility bill and tenant meter re
 - Cloudflare KV namespace: `HOUSE_RENT_KV`
 - Static frontend in `public/index.html`
 - Bootstrap 5.3.3 and html2canvas loaded from CDN
+- Chart.js 4.4.1 for analytics charts
 - No build step or package manifest is currently present
 
 ## Repository Layout
@@ -19,6 +20,7 @@ Thai rental-billing application for recording a utility bill and tenant meter re
 - `src/auth.js`: password hashing and session cookie support
 - `src/ocr-interface.js`: OCR abstraction for bill and meter images
 - `src/business-logic.test.js`: Unit tests for business logic
+- `src/analytics.test.js`: Unit tests for analytics calculations
 - `public/index.html`: complete single-page frontend, styles, and browser-side behavior
 - `wrangler.toml`: Worker, static asset, and KV binding configuration
 
@@ -65,6 +67,28 @@ The system includes a complete backup and restore feature:
 - Preview modal showing data summary and conflicts
 - Confirmation required before restore
 
+## Analytics Dashboard
+
+The system includes a comprehensive analytics and reporting feature:
+
+### API Endpoint
+- **GET /api/analytics**
+  - Revenue summaries (total, this year, this month)
+  - Owner income summaries with percentages
+  - Electricity usage statistics
+  - Monthly breakdown table
+  - Chart data for visualization
+
+### UI (Analytics Tab)
+- Revenue summary cards
+- Owner income summary with progress bars
+- Electricity analytics (average, highest, lowest usage)
+- Interactive charts (Chart.js):
+  - Revenue trend (bar chart)
+  - Owner comparison (doughnut chart)
+  - Electricity usage (line chart)
+- Monthly revenue table with totals
+
 ## Application Workflow
 
 1. Utility Bill: record total utility units and bill amount, optionally using OCR.
@@ -72,7 +96,8 @@ The system includes a complete backup and restore feature:
 3. Process: calculate and save the monthly statement.
 4. Dashboard: view tenant bill, calculation transparency, payment status, and owner allocation.
 5. Invoice / Share: print or save PDF, copy LINE text, download PNG, or share an image.
-6. Backup/Restore: export all data or restore from backup file.
+6. Analytics: view business insights, revenue trends, and owner income reports.
+7. Backup/Restore: export all data or restore from backup file.
 
 The app uses a horizontal, scrollable tab navigation and a single-page vertical scrolling experience.
 
@@ -104,19 +129,22 @@ The frontend relies on inline JavaScript in `public/index.html`. For visual chan
 # Whitespace and patch validation
 git diff --check
 
-# Run unit tests
+# Run business logic unit tests
 node src/business-logic.test.js
+
+# Run analytics unit tests
+node src/analytics.test.js
 
 # Run locally
 npx wrangler dev --local --port 8788
 ```
 
-For UI work, verify all six tabs, the month picker, payment-status toggle, calculation-collapse behavior, invoice modal, and share/PDF action controls in a browser.
+For UI work, verify all seven tabs (Dashboard, บิลไฟหลวง, มิเตอร์, ประมวลผล, รายงานย้อนหลัง, สถิติ, ตั้งค่า), the month picker, payment-status toggle, calculation-collapse behavior, invoice modal, analytics charts, and share/PDF action controls in a browser.
 
 ## Stable Release
 
 Current Stable Tag:
-v2.0-backup-restore
+v3.0-analytics-dashboard
 
 Production Branch:
 main
@@ -136,3 +164,4 @@ backup/pre-final-ui-polish
 - Auto-backup created before each restore operation
 - Password minimum length: 8 characters
 - Error messages are sanitized (no internal details leaked)
+- Analytics tab lazy-loads data when tab is shown
