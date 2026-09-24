@@ -1089,7 +1089,11 @@
   </span>
 </label>
 
-<input type="hidden" id="processMonthInput">
+        <input type="hidden" id="processMonthInput">
+        <div class="mb-3">
+          <label class="form-label fw-bold">📅 วันที่ออกบิล</label>
+          <input type="date" class="form-control" id="invoiceDateInput">
+        </div>
         <div class="mb-3">
           <label class="form-label fw-bold">ส่วนลดค่าเช่าของเดือนนี้ (บาท)</label>
           <input type="number" class="form-control" id="processDiscountInput" placeholder="500" step="any" min="0">
@@ -1502,6 +1506,7 @@
         <div class="text-center mb-3">
           <h4 class="fw-bold mb-1">ใบแจ้งค่าเช่าและค่าสาธารณูปโภค</h4>
           <div class="text-muted fw-bold" id="invMonth">เดือน: -</div>
+          <div class="text-muted small mt-1" id="invInvoiceDate">วันที่ออกบิล: -</div>
           <div class="mt-2"><span class="badge fs-6" id="invStatusBadge">🔴 รอชำระ</span></div>
         </div>
         <div class="list-group list-group-flush mb-3">
@@ -1923,6 +1928,15 @@ document.getElementById("processMonthDisplay").innerText =
     await loadUtilityBillForMonth();
     await loadMeterReadingForMonth();
     await autoFillPreviousMeter();
+    
+    // โหลด invoiceDate จาก statement ที่มีอยู่ (ถ้ามี)
+    const invoiceDateInput = document.getElementById("invoiceDateInput");
+    if (statementCache[currentSelectedMonth]?.invoiceDate) {
+      invoiceDateInput.value = statementCache[currentSelectedMonth].invoiceDate;
+    } else {
+      // ห้าม auto-fill วันที่ปัจจุบัน - ปล่อยว่าง
+      invoiceDateInput.value = "";
+    }
 
     if (statementCache[currentSelectedMonth]) {
       renderDashboard(statementCache[currentSelectedMonth]);
@@ -1981,7 +1995,7 @@ document.getElementById("processMonthDisplay").innerText =
     }
     const r = latestStatement;
     const thaiMonth = formatThaiMonth(r.month);
-    const issueDate = formatThaiDate(r.updatedAt || new Date().toISOString());
+    const issueDate = formatThaiDate(r.invoiceDate);
 
     const isCash = (r.paymentMethod || currentSettings.paymentMethod) === "cash";
     let paymentChannelText = "💵 รับชำระเงินสด";
@@ -2776,10 +2790,12 @@ ${owner2Items}
 
     await setBtnLoading("btnExecuteCalc", true);
     try {
+      // ดึงค่า invoiceDate จากฟอร์ม (ถ้าว่างจะเป็น string ว่าง)
+      const invoiceDate = document.getElementById("invoiceDateInput").value || null;
       const res = await fetch("/api/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month, rentDiscount: Number(rentDiscount) })
+        body: JSON.stringify({ month, rentDiscount: Number(rentDiscount), invoiceDate })
       });
       const data = await res.json();
 
@@ -2913,7 +2929,7 @@ ${owner2Items}
     btn.classList.remove("disabled");
     const r = statement;
 
-    const billDateText = formatThaiDate(r.updatedAt || new Date().toISOString());
+    const billDateText = formatThaiDate(r.invoiceDate) || "วันที่ออกบิล: -";
 
     // 1. Tenant Bill View
     document.getElementById("tenantBillMonthDisplay").innerText = formatThaiMonth(r.month);
@@ -3245,6 +3261,7 @@ const owner2Total =
     document.getElementById("invRentDiscount").innerText = `-${formatCurrency(r.rentDiscount)} บาท`;
     document.getElementById("invNetRent").innerText = `${formatCurrency(r.netRentAmount)} บาท`;
     document.getElementById("invWater").innerText = `${formatCurrency(r.waterAmount)} บาท`;
+    document.getElementById("invInvoiceDate").innerText = `วันที่ออกบิล: ${formatThaiDate(r.invoiceDate) || "-"}`;
 
     document.getElementById("invPrevReading").innerText = r.previousReading;
     document.getElementById("invCurrReading").innerText = r.currentReading;
@@ -3272,7 +3289,7 @@ const owner2Total =
   // อัปเดตข้อมูลลง DOM สำหรับ Render Share Card
   function populateShareCardDOM(r) {
     document.getElementById("cardMonth").innerText = `ประจำเดือน ${formatThaiMonth(r.month)}`;
-    document.getElementById("cardIssueDate").innerText = `วันที่ออกบิล ${formatThaiDate(r.updatedAt || new Date().toISOString())}`;
+    document.getElementById("cardIssueDate").innerText = `วันที่ออกบิล ${formatThaiDate(r.invoiceDate) || "-"}`;
 
     const isPaid = r.paymentStatus === "paid";
     const statusBadge = document.getElementById("cardStatusBadge");

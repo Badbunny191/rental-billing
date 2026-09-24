@@ -318,6 +318,7 @@ export default {
       if (url.pathname === "/api/calculate" && method === "POST") {
         const data = await request.json();
         const month = data.month;
+        const invoiceDate = data.invoiceDate; // วันที่ออกบิลจากฟอร์ม
 
         if (!isValidMonthFormat(month)) {
           return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง (ต้องเป็น YYYY-MM)" }), {
@@ -382,6 +383,12 @@ export default {
         const paymentStatus = existingStatement?.paymentStatus === "paid" ? "paid" : "unpaid";
         const paidAt = paymentStatus === "paid" ? (existingStatement.paidAt || new Date().toISOString()) : null;
 
+        // invoiceDate Priority (ใหม่ - แก้ไขได้ผ่านฟอร์ม):
+        // 1. ค่าจากฟอร์ม (Priority สูงสุด - ผู้ใช้แก้ไขได้)
+        // 2. ค่าเดิมใน KV (fallback ถ้าฟอร์มว่าง)
+        // 3. null (ถ้าไม่มีทั้งสอง)
+        const finalInvoiceDate = invoiceDate || existingStatement?.invoiceDate || null;
+
         const statement = {
           month,
           ...statementCalc,
@@ -390,6 +397,7 @@ export default {
           waterReceiver: settings.waterReceiver || "owner2",
           paymentStatus,
           paidAt,
+          invoiceDate: finalInvoiceDate,
           updatedAt: new Date().toISOString()
         };
 
