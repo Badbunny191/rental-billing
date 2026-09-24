@@ -23,6 +23,7 @@
 <meta name="theme-color" content="#2563eb">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     html, body {
   touch-action: manipulation;
@@ -332,6 +333,121 @@
       .no-print {
         display: none !important;
       }
+    }
+
+    /* ============================================================
+       PDF Canvas Container - A4 Fixed Size สำหรับ html2canvas
+       ใช้ควบคุมขนาดให้คงที่ ไม่ขึ้นกับ browser
+       ============================================================ */
+    .pdf-render-container {
+      position: fixed;
+      left: -99999px;
+      top: 0;
+      width: 210mm;
+      min-height: 297mm;
+      background: #ffffff;
+      padding: 8mm;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      overflow: hidden !important;
+    }
+
+    .pdf-render-container h4 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+      text-align: center;
+      color: #0f172a;
+    }
+
+    .pdf-render-container .pdf-header-row {
+      text-align: center;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 2px dashed #cbd5e1;
+    }
+
+    .pdf-render-container .pdf-month {
+      font-size: 15px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+
+    .pdf-render-container .pdf-invoice-date {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .pdf-render-container .pdf-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .pdf-render-container .pdf-badge.paid {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .pdf-render-container .pdf-badge.unpaid {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .pdf-render-container .pdf-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 8px;
+      font-size: 13px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .pdf-render-container .pdf-row.net {
+      font-weight: 700;
+      background: #f8fafc;
+      margin-top: 4px;
+    }
+
+    .pdf-render-container .pdf-row.total {
+      font-weight: 800;
+      font-size: 16px;
+      background: #ecfdf5;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+
+    .pdf-render-container .pdf-total-amount {
+      color: #15803d;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .pdf-render-container .pdf-bank {
+      margin-top: 14px;
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .pdf-render-container .pdf-bank-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+
+    .pdf-render-container .pdf-footer {
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 14px;
     }
     #monthPickerSheet:not(.active) {
   display: none !important;
@@ -1573,13 +1689,38 @@
       </div>
       <div class="modal-footer no-print">
         <button type="button" class="btn btn-secondary btn-lg touch-target" data-bs-dismiss="modal">ปิด</button>
-        <button type="button" class="btn btn-success btn-lg touch-target" onclick="window.print()">📄 พิมพ์ / บันทึก PDF</button>
+        <button type="button" class="btn btn-success btn-lg touch-target" onclick="downloadInvoicePDF()">📄 พิมพ์ / บันทึก PDF</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 1. PNG Share Card Redesign -->
+<!-- PDF Render Container (off-screen) - ใช้สำหรับ html2canvas -->
+<div id="pdfRenderContainer" class="pdf-render-container">
+  <div class="pdf-header-row">
+    <h4>🏡 ใบแจ้งค่าเช่าและค่าสาธารณูปโภค</h4>
+    <div class="pdf-month" id="pdfMonth">ประจำเดือน -</div>
+    <div class="pdf-invoice-date" id="pdfInvoiceDate">วันที่ออกบิล: -</div>
+    <span class="pdf-badge unpaid" id="pdfStatusBadge">🔴 รอชำระ</span>
+  </div>
+
+  <div class="pdf-row"><span>ค่าเช่าพื้นฐาน</span><span id="pdfBaseRent">0.00 บาท</span></div>
+  <div class="pdf-row" style="color:#dc2626;"><span>ส่วนลดค่าเช่า</span><span id="pdfRentDiscount">-0.00 บาท</span></div>
+  <div class="pdf-row net"><span>ค่าเช่าสุทธิ</span><span id="pdfNetRent">0.00 บาท</span></div>
+  <div class="pdf-row"><span>ค่าน้ำ</span><span id="pdfWater">0.00 บาท</span></div>
+  <div class="pdf-row"><span>เลขมิเตอร์เดือนก่อน</span><span id="pdfPrevReading">0</span></div>
+  <div class="pdf-row"><span>เลขมิเตอร์เดือนปัจจุบัน</span><span id="pdfCurrReading">0</span></div>
+  <div class="pdf-row"><span>จำนวนหน่วยไฟที่ใช้</span><span id="pdfUsedUnits">0 หน่วย</span></div>
+  <div class="pdf-row"><span>ค่าไฟเรียกเก็บ (<span id="pdfUsedUnitsRate">0</span> หน่วย @ <span id="pdfRate">0</span> บาท)</span><span id="pdfElectricCharge">0.00 บาท</span></div>
+  <div class="pdf-row total"><span>ยอดรวมสุทธิที่ต้องชำระ</span><span class="pdf-total-amount" id="pdfTotalBill">0.00 บาท</span></div>
+
+  <div class="pdf-bank">
+    <div class="pdf-bank-title" id="pdfPaymentChannelTitle">ช่องทางการชำระเงิน:</div>
+    <div id="pdfBankAccount" style="white-space: pre-line;">-</div>
+  </div>
+
+  <div class="pdf-footer">กรุณาชำระเงินตามกำหนด ขอบคุณครับ</div>
+</div>
 <div id="mobileShareCardContainer" style="position: fixed; left: -9999px; top: 0; width: 440px; background: #ffffff; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box;">
   <div id="mobileShareCard" style="background: #ffffff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #1e293b; box-sizing: border-box;">
     
@@ -3336,6 +3477,105 @@ const owner2Total =
     populateShareCardDOM(latestStatement);
     const cardElement = document.getElementById("mobileShareCard");
     return await html2canvas(cardElement, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+  }
+
+  // ============================================================
+  // PDF Invoice Generator (html2canvas + jsPDF) - Stable 100%
+  // ใช้ off-screen container ขนาด A4 เพื่อให้ผลลัพธ์เหมือนกันทุก browser
+  // ============================================================
+  function populatePDFContainer(r) {
+    document.getElementById("pdfMonth").innerText = `ประจำเดือน ${formatThaiMonth(r.month)}`;
+    document.getElementById("pdfInvoiceDate").innerText = `วันที่ออกบิล: ${formatThaiDate(r.invoiceDate) || "-"}`;
+
+    const isPaid = r.paymentStatus === "paid";
+    const badge = document.getElementById("pdfStatusBadge");
+    if (isPaid) {
+      badge.className = "pdf-badge paid";
+      badge.innerText = "🟢 ชำระแล้ว";
+    } else {
+      badge.className = "pdf-badge unpaid";
+      badge.innerText = "🔴 รอชำระ";
+    }
+
+    document.getElementById("pdfBaseRent").innerText = `${formatCurrency(r.baseRentAmount)} บาท`;
+    document.getElementById("pdfRentDiscount").innerText = `-${formatCurrency(r.rentDiscount)} บาท`;
+    document.getElementById("pdfNetRent").innerText = `${formatCurrency(r.netRentAmount)} บาท`;
+    document.getElementById("pdfWater").innerText = `${formatCurrency(r.waterAmount)} บาท`;
+    document.getElementById("pdfPrevReading").innerText = r.previousReading;
+    document.getElementById("pdfCurrReading").innerText = r.currentReading;
+    document.getElementById("pdfUsedUnits").innerText = `${r.usedUnit} หน่วย`;
+    document.getElementById("pdfUsedUnitsRate").innerText = r.usedUnit;
+    document.getElementById("pdfRate").innerText = r.electricSellRate;
+    document.getElementById("pdfElectricCharge").innerText = `${formatCurrency(r.electricCharge)} บาท`;
+    document.getElementById("pdfTotalBill").innerText = `${formatCurrency(r.totalBill)} บาท`;
+
+    const isCash = (r.paymentMethod || currentSettings.paymentMethod) === "cash";
+    if (isCash) {
+      document.getElementById("pdfPaymentChannelTitle").innerText = "ช่องทางการชำระเงิน:";
+      document.getElementById("pdfBankAccount").innerText = "💵 รับชำระเงินสด";
+    } else {
+      document.getElementById("pdfPaymentChannelTitle").innerText = "ช่องทางการชำระเงิน:";
+      const bankText = (r.bankAccount && r.bankAccount.trim() !== "") ? r.bankAccount : (currentSettings.bankAccount || "ยังไม่ได้กำหนดเลขบัญชี");
+      document.getElementById("pdfBankAccount").innerText = `🏦 ช่องทางรับชำระ\n${bankText}`;
+    }
+  }
+
+  async function downloadInvoicePDF() {
+    if (!latestStatement) {
+      alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวดนี้");
+      return;
+    }
+
+    try {
+      showToast("กำลังสร้าง PDF...");
+
+      // 1. Populate ข้อมูลลง PDF Container (off-screen)
+      populatePDFContainer(latestStatement);
+
+      // 2. รอให้ DOM render เสร็จ
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 3. ใช้ PDF Container ที่มีขนาด A4 คงที่
+      const pdfContainer = document.getElementById("pdfRenderContainer");
+
+      // 4. สร้าง Canvas จาก DOM
+      const canvas = await html2canvas(pdfContainer, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        width: pdfContainer.offsetWidth,
+        height: pdfContainer.offsetHeight,
+        windowWidth: 794,  // A4 width at 96 DPI (210mm)
+        windowHeight: 1123 // A4 height at 96 DPI (297mm)
+      });
+
+      // 5. สร้าง PDF ขนาด A4
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+
+      // 6. ใส่รูปลง PDF ให้พอดี 1 หน้า (ไม่มี page 2)
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      const imgData = canvas.toDataURL("image/png");
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+      // 7. ดาวน์โหลด
+      const filename = `invoice-${latestStatement.month}.pdf`;
+      pdf.save(filename);
+
+      showToast("สร้าง PDF สำเร็จ!");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      alert("เกิดข้อผิดพลาดในการสร้าง PDF: " + err.message);
+    }
   }
 
   async function downloadShareCardPNG() {
