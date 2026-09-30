@@ -816,11 +816,33 @@ export default {
             thumbFilename
           });
 
-          // Step 1: Upload new images to R2
-          const putImageResult = await bucket.put(imagePath, image.stream(), {
+          // Step 1: Upload new images to R2 (using arrayBuffer workaround to prove stream issue)
+
+          // [DEBUG POST /api/bill-image] log image/thumb metadata ก่อน put
+          console.log("[DEBUG POST /api/bill-image] pre-put metadata", {
+            imageSize: image.size,
+            imageType: image.type,
+            imageCtor: image.constructor?.name,
+            thumbSize: thumb.size,
+            thumbType: thumb.type,
+            thumbCtor: thumb.constructor?.name,
+            streamAvailable_image: typeof image.stream === "function",
+            streamAvailable_thumb: typeof thumb.stream === "function"
+          });
+
+          // [WORKAROUND] เปลี่ยนจาก .stream() → .arrayBuffer() เพื่อพิสูจน์ปัญหา stream
+          const imageBuffer = await image.arrayBuffer();
+          const thumbBuffer = await thumb.arrayBuffer();
+
+          console.log("[DEBUG POST /api/bill-image] buffer sizes", {
+            imageBufferBytes: imageBuffer.byteLength,
+            thumbBufferBytes: thumbBuffer.byteLength
+          });
+
+          const putImageResult = await bucket.put(imagePath, imageBuffer, {
             httpMetadata: { contentType: "image/webp" }
           });
-          const putThumbResult = await bucket.put(thumbPath, thumb.stream(), {
+          const putThumbResult = await bucket.put(thumbPath, thumbBuffer, {
             httpMetadata: { contentType: "image/webp" }
           });
 
@@ -828,8 +850,30 @@ export default {
           console.log("[DEBUG POST /api/bill-image] R2 put result", {
             imageKey: imagePath,
             imagePutOk: putImageResult !== null,
+            imagePutType: typeof putImageResult,
+            imagePutKeys: putImageResult && typeof putImageResult === "object" ? Object.keys(putImageResult) : null,
             thumbKey: thumbPath,
-            thumbPutOk: putThumbResult !== null
+            thumbPutOk: putThumbResult !== null,
+            thumbPutType: typeof putThumbResult
+          });
+
+          // [VERIFY AFTER PUT] ดึงกลับมาทันทีเพื่อพิสูจน์ว่า object ถูกเขียนจริง
+          const verifyImage = await bucket.get(imagePath);
+          console.log("[VERIFY AFTER PUT] image", {
+            imagePath,
+            exists: verifyImage !== null,
+            size: verifyImage?.size ?? null,
+            contentType: verifyImage?.httpMetadata?.contentType ?? null,
+            uploadCompleted_image: putImageResult?.uploadCompleted ?? null
+          });
+
+          const verifyThumb = await bucket.get(thumbPath);
+          console.log("[VERIFY AFTER PUT] thumb", {
+            thumbPath,
+            exists: verifyThumb !== null,
+            size: verifyThumb?.size ?? null,
+            contentType: verifyThumb?.httpMetadata?.contentType ?? null,
+            uploadCompleted_thumb: putThumbResult?.uploadCompleted ?? null
           });
 
           // Step 2: Update KV (if this fails, rollback R2)
@@ -1087,12 +1131,41 @@ export default {
           // Extract path after /images/
           const objectKey = url.pathname.substring("/images/".length);
 
+          // [IMAGE GET REQUEST] log request ก่อน lookup
+          console.log("[IMAGE GET REQUEST]", {
+            pathname: url.pathname,
+            objectKey,
+            objectKeyLength: objectKey.length,
+            hasLeadingSlash: objectKey.startsWith("/"),
+            hasTrailingSlash: objectKey.endsWith("/"),
+            fullUrl: url.toString(),
+            method: request.method
+          });
+
           if (!objectKey || objectKey.includes("..")) {
+            console.log("[IMAGE GET INVALID PATH]", { objectKey });
             return new Response("Invalid path", { status: 400 });
           }
 
+          // [IMAGE GET LOOKUP] log ก่อน R2 get
+          console.log("[IMAGE GET LOOKUP]", { objectKey });
           const object = await bucket.get(objectKey);
+
+          // [IMAGE GET RESULT] log ผลลัพธ์
+          console.log("[IMAGE GET RESULT]", {
+            objectKey,
+            found: object !== null,
+            size: object?.size ?? null,
+            contentType: object?.httpMetadata?.contentType ?? null,
+            uploaded: object?.uploaded ?? null
+          });
+
           if (!object) {
+            // [IMAGE GET NOT FOUND] log ก่อน return 404
+            console.log("[IMAGE GET NOT FOUND]", {
+              objectKey,
+              pathname: url.pathname
+            });
             return new Response("Image not found", { status: 404 });
           }
 
