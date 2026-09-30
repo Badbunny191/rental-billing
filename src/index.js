@@ -807,12 +807,29 @@ export default {
           const imagePath = buildImagePath("bill", month, imageFilename);
           const thumbPath = buildImagePath("bill", month, thumbFilename);
 
+          // [DEBUG POST /api/bill-image] log paths ก่อน R2 upload
+          console.log("[DEBUG POST /api/bill-image] paths", {
+            month,
+            imagePath,
+            thumbPath,
+            imageFilename,
+            thumbFilename
+          });
+
           // Step 1: Upload new images to R2
-          await bucket.put(imagePath, image.stream(), {
+          const putImageResult = await bucket.put(imagePath, image.stream(), {
             httpMetadata: { contentType: "image/webp" }
           });
-          await bucket.put(thumbPath, thumb.stream(), {
+          const putThumbResult = await bucket.put(thumbPath, thumb.stream(), {
             httpMetadata: { contentType: "image/webp" }
+          });
+
+          // [DEBUG POST /api/bill-image] log ผล R2 put
+          console.log("[DEBUG POST /api/bill-image] R2 put result", {
+            imageKey: imagePath,
+            imagePutOk: putImageResult !== null,
+            thumbKey: thumbPath,
+            thumbPutOk: putThumbResult !== null
           });
 
           // Step 2: Update KV (if this fails, rollback R2)
@@ -827,6 +844,16 @@ export default {
             billData.updatedAt = new Date().toISOString();
 
             await env.HOUSE_RENT_KV.put(`utility_bill:${month}`, JSON.stringify(billData));
+
+            // [DEBUG POST /api/bill-image] อ่าน KV กลับมา verify
+            const verifyKV = await env.HOUSE_RENT_KV.get(`utility_bill:${month}`, { type: "json" });
+            console.log("[DEBUG POST /api/bill-image] KV verify", {
+              kvKey: `utility_bill:${month}`,
+              billImagePath: verifyKV?.billImage?.path || null,
+              billThumbPath: verifyKV?.billImage?.thumbPath || null,
+              uploadedPath_match: verifyKV?.billImage?.path === imagePath,
+              uploadedThumb_match: verifyKV?.billImage?.thumbPath === thumbPath
+            });
           } catch (kvError) {
             // Rollback: Delete uploaded files
             await bucket.delete(imagePath).catch(() => {});
