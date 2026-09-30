@@ -38,8 +38,9 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
 
-    // Static Assets Handler: ส่งต่อ Request ที่ไม่ใช่ API ไปยัง Public Assets
-    if (!url.pathname.startsWith("/api/")) {
+    // Static Assets Handler: ส่งต่อ Request ที่ไม่ใช่ API และไม่ใช่ /images/* ไปยัง Public Assets
+    // หมายเหตุ: /images/* ต้องวิ่งผ่าน Worker route เพื่ออ่านจาก R2 (env.IMAGE_BUCKET)
+    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/images/")) {
       if (env.ASSETS) {
         return await env.ASSETS.fetch(request);
       }
