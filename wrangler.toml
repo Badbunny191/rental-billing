@@ -9,3 +9,7 @@ binding = "ASSETS"
 [[kv_namespaces]]
 binding = "HOUSE_RENT_KV"
 id = "0275b02b5c8047e48c6871b0243bcff1"
+
+[[r2_buckets]]
+binding = "IMAGE_BUCKET"
+bucket_name = "rental-billing-images"

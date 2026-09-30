@@ -709,9 +709,380 @@ export default {
       }
 
       // -------------------------------------------------------------
+      // 10B. IMAGE ROUTES (R2 Storage - Bill & Meter Images)
+      // -------------------------------------------------------------
+
+      // Helper: Validate R2 binding exists
+      function requireImageBucket(env) {
+        if (!env.IMAGE_BUCKET) {
+          throw new Error("R2 bucket binding 'IMAGE_BUCKET' is not configured");
+        }
+        return env.IMAGE_BUCKET;
+      }
+
+      // Helper: Generate unique filename with cache-busting
+      function generateImageFilename(type, month, isThumb) {
+        const timestamp = Date.now();
+        const random = crypto.randomUUID().substring(0, 8);
+        const prefix = isThumb ? "thumb_" : "";
+        return `${prefix}${type}_${timestamp}_${random}.webp`;
+      }
+
+      // Helper: Build R2 object key
+      function buildImagePath(type, month, filename) {
+        const [year, monthNum] = month.split("-");
+        return `${type}s/${year}/${monthNum}/${filename}`;
+      }
+
+      // Helper: Get previous month (cross-year safe)
+      function getPreviousMonth(monthStr) {
+        const [year, month] = monthStr.split("-").map(Number);
+        if (month === 1) {
+          return `${year - 1}-12`;
+        }
+        return `${year}-${String(month - 1).padStart(2, "0")}`;
+      }
+
+      // Helper: Convert image metadata to public response format
+      function buildImageResponse(imageData, type, month) {
+        if (!imageData) return null;
+        const isBill = type === "bill";
+        const pathKey = isBill ? "path" : "path";
+        return {
+          path: imageData.path,
+          thumbPath: imageData.thumbPath,
+          imageUrl: `/images/${imageData.path}`,
+          thumbUrl: `/images/${imageData.thumbPath}`,
+          uploadedAt: imageData.uploadedAt,
+          originalSize: imageData.originalSize || null
+        };
+      }
+
+      // ===== BILL IMAGE ROUTES =====
+
+      // [Fix 4] Max sizes: full=2MB, thumb=100KB (client already resizes ลงประมาณ 500KB/50KB)
+      const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+      const MAX_THUMB_SIZE = 100 * 1024;
+
+      if (url.pathname === "/api/bill-image" && method === "POST") {
+        try {
+          const bucket = requireImageBucket(env);
+          const formData = await request.formData();
+          const image = formData.get("image");
+          const thumb = formData.get("thumb");
+          const month = String(formData.get("month") || "");
+          const originalSize = parseInt(formData.get("originalSize") || "0", 10);
+
+          if (!isValidMonthFormat(month)) {
+            return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          if (!image || !thumb) {
+            return new Response(JSON.stringify({ error: "กรุณาส่งรูปภาพและ thumbnail" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          // [Fix 4] Defense-in-depth: validate file sizes (เผื่อ client ไม่ resize)
+          if (image.size > MAX_IMAGE_SIZE || thumb.size > MAX_THUMB_SIZE) {
+            return new Response(JSON.stringify({
+              error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 2MB, thumb ≤ 100KB)"
+            }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          // Get existing bill data (for replace flow)
+          const existing = await env.HOUSE_RENT_KV.get(`utility_bill:${month}`, { type: "json" });
+
+          // Generate filenames
+          const imageFilename = generateImageFilename("bill", month, false);
+          const thumbFilename = generateImageFilename("bill", month, true);
+          const imagePath = buildImagePath("bill", month, imageFilename);
+          const thumbPath = buildImagePath("bill", month, thumbFilename);
+
+          // Step 1: Upload new images to R2
+          await bucket.put(imagePath, image.stream(), {
+            httpMetadata: { contentType: "image/webp" }
+          });
+          await bucket.put(thumbPath, thumb.stream(), {
+            httpMetadata: { contentType: "image/webp" }
+          });
+
+          // Step 2: Update KV (if this fails, rollback R2)
+          try {
+            const billData = existing || { month, unit: 0, amount: 0 };
+            billData.billImage = {
+              path: imagePath,
+              thumbPath: thumbPath,
+              uploadedAt: new Date().toISOString(),
+              originalSize: originalSize
+            };
+            billData.updatedAt = new Date().toISOString();
+
+            await env.HOUSE_RENT_KV.put(`utility_bill:${month}`, JSON.stringify(billData));
+          } catch (kvError) {
+            // Rollback: Delete uploaded files
+            await bucket.delete(imagePath).catch(() => {});
+            await bucket.delete(thumbPath).catch(() => {});
+            throw kvError;
+          }
+
+          // Step 3: Delete old images if replacing (hard delete old files)
+          if (existing?.billImage) {
+            await bucket.delete(existing.billImage.path).catch(() => {});
+            await bucket.delete(existing.billImage.thumbPath).catch(() => {});
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            path: imagePath,
+            thumbPath: thumbPath
+          }), { headers: JSON_HEADERS });
+        } catch (err) {
+          console.error("Bill image upload error:", err);
+          // [Fix 5] sanitize error message (ห้ามเปิดเผย internal details)
+          return new Response(JSON.stringify({
+            error: "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+          }), { status: 500, headers: JSON_HEADERS });
+        }
+      }
+
+      if (url.pathname.startsWith("/api/bill-image/") && method === "GET") {
+        const month = url.pathname.split("/")[3];
+        if (!isValidMonthFormat(month)) {
+          return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
+            status: 400,
+            headers: JSON_HEADERS
+          });
+        }
+
+        const [current, previous] = await Promise.all([
+          env.HOUSE_RENT_KV.get(`utility_bill:${month}`, { type: "json" }),
+          env.HOUSE_RENT_KV.get(`utility_bill:${getPreviousMonth(month)}`, { type: "json" })
+        ]);
+
+        return new Response(JSON.stringify({
+          current: buildImageResponse(current?.billImage, "bill", month),
+          previous: buildImageResponse(previous?.billImage, "bill", getPreviousMonth(month))
+        }), { headers: JSON_HEADERS });
+      }
+
+      if (url.pathname.startsWith("/api/bill-image/") && method === "DELETE") {
+        try {
+          const bucket = requireImageBucket(env);
+          const month = url.pathname.split("/")[3];
+
+          if (!isValidMonthFormat(month)) {
+            return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          const existing = await env.HOUSE_RENT_KV.get(`utility_bill:${month}`, { type: "json" });
+          if (!existing?.billImage) {
+            return new Response(JSON.stringify({ success: true, message: "ไม่มีรูปให้ลบ" }), {
+              headers: JSON_HEADERS
+            });
+          }
+
+          // Step 1: Delete from R2 first (if fail, don't touch KV)
+          await bucket.delete(existing.billImage.path);
+          await bucket.delete(existing.billImage.thumbPath);
+
+          // Step 2: Clear KV fields
+          delete existing.billImage;
+          existing.updatedAt = new Date().toISOString();
+
+          await env.HOUSE_RENT_KV.put(`utility_bill:${month}`, JSON.stringify(existing));
+
+          return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+        } catch (err) {
+          console.error("Bill image delete error:", err);
+          return new Response(JSON.stringify({
+            error: "ลบรูปไม่สำเร็จ: " + err.message
+          }), { status: 500, headers: JSON_HEADERS });
+        }
+      }
+
+      // ===== METER IMAGE ROUTES =====
+
+      if (url.pathname === "/api/meter-image" && method === "POST") {
+        try {
+          const bucket = requireImageBucket(env);
+          const formData = await request.formData();
+          const image = formData.get("image");
+          const thumb = formData.get("thumb");
+          const month = String(formData.get("month") || "");
+          const originalSize = parseInt(formData.get("originalSize") || "0", 10);
+
+          if (!isValidMonthFormat(month)) {
+            return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          if (!image || !thumb) {
+            return new Response(JSON.stringify({ error: "กรุณาส่งรูปภาพและ thumbnail" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          // [Fix 4] Defense-in-depth: validate file sizes
+          if (image.size > MAX_IMAGE_SIZE || thumb.size > MAX_THUMB_SIZE) {
+            return new Response(JSON.stringify({
+              error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 2MB, thumb ≤ 100KB)"
+            }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          const existing = await env.HOUSE_RENT_KV.get(`meter_reading:${month}`, { type: "json" });
+
+          const imageFilename = generateImageFilename("meter", month, false);
+          const thumbFilename = generateImageFilename("meter", month, true);
+          const imagePath = buildImagePath("meter", month, imageFilename);
+          const thumbPath = buildImagePath("meter", month, thumbFilename);
+
+          await bucket.put(imagePath, image.stream(), {
+            httpMetadata: { contentType: "image/webp" }
+          });
+          await bucket.put(thumbPath, thumb.stream(), {
+            httpMetadata: { contentType: "image/webp" }
+          });
+
+          try {
+            const meterData = existing || { month, previousReading: 0, currentReading: 0 };
+            meterData.meterImage = {
+              path: imagePath,
+              thumbPath: thumbPath,
+              uploadedAt: new Date().toISOString(),
+              originalSize: originalSize
+            };
+            meterData.updatedAt = new Date().toISOString();
+
+            await env.HOUSE_RENT_KV.put(`meter_reading:${month}`, JSON.stringify(meterData));
+          } catch (kvError) {
+            await bucket.delete(imagePath).catch(() => {});
+            await bucket.delete(thumbPath).catch(() => {});
+            throw kvError;
+          }
+
+          if (existing?.meterImage) {
+            await bucket.delete(existing.meterImage.path).catch(() => {});
+            await bucket.delete(existing.meterImage.thumbPath).catch(() => {});
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            path: imagePath,
+            thumbPath: thumbPath
+          }), { headers: JSON_HEADERS });
+        } catch (err) {
+          console.error("Meter image upload error:", err);
+          // [Fix 5] sanitize error message
+          return new Response(JSON.stringify({
+            error: "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+          }), { status: 500, headers: JSON_HEADERS });
+        }
+      }
+
+      if (url.pathname.startsWith("/api/meter-image/") && method === "GET") {
+        const month = url.pathname.split("/")[3];
+        if (!isValidMonthFormat(month)) {
+          return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
+            status: 400,
+            headers: JSON_HEADERS
+          });
+        }
+
+        const [current, previous] = await Promise.all([
+          env.HOUSE_RENT_KV.get(`meter_reading:${month}`, { type: "json" }),
+          env.HOUSE_RENT_KV.get(`meter_reading:${getPreviousMonth(month)}`, { type: "json" })
+        ]);
+
+        return new Response(JSON.stringify({
+          current: buildImageResponse(current?.meterImage, "meter", month),
+          previous: buildImageResponse(previous?.meterImage, "meter", getPreviousMonth(month))
+        }), { headers: JSON_HEADERS });
+      }
+
+      if (url.pathname.startsWith("/api/meter-image/") && method === "DELETE") {
+        try {
+          const bucket = requireImageBucket(env);
+          const month = url.pathname.split("/")[3];
+
+          if (!isValidMonthFormat(month)) {
+            return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+
+          const existing = await env.HOUSE_RENT_KV.get(`meter_reading:${month}`, { type: "json" });
+          if (!existing?.meterImage) {
+            return new Response(JSON.stringify({ success: true, message: "ไม่มีรูปให้ลบ" }), {
+              headers: JSON_HEADERS
+            });
+          }
+
+          await bucket.delete(existing.meterImage.path);
+          await bucket.delete(existing.meterImage.thumbPath);
+
+          delete existing.meterImage;
+          existing.updatedAt = new Date().toISOString();
+
+          await env.HOUSE_RENT_KV.put(`meter_reading:${month}`, JSON.stringify(existing));
+
+          return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS });
+        } catch (err) {
+          console.error("Meter image delete error:", err);
+          return new Response(JSON.stringify({
+            error: "ลบรูปไม่สำเร็จ: " + err.message
+          }), { status: 500, headers: JSON_HEADERS });
+        }
+      }
+
+      // ===== IMAGE SERVING (R2 → Browser) =====
+      if (url.pathname.startsWith("/images/") && method === "GET") {
+        try {
+          const bucket = requireImageBucket(env);
+          // Extract path after /images/
+          const objectKey = url.pathname.substring("/images/".length);
+
+          if (!objectKey || objectKey.includes("..")) {
+            return new Response("Invalid path", { status: 400 });
+          }
+
+          const object = await bucket.get(objectKey);
+          if (!object) {
+            return new Response("Image not found", { status: 404 });
+          }
+
+          const headers = new Headers();
+          headers.set("Content-Type", object.httpMetadata?.contentType || "image/webp");
+          headers.set("Cache-Control", "public, max-age=31536000, immutable");
+
+          return new Response(object.body, { headers });
+        } catch (err) {
+          console.error("Image serving error:", err);
+          return new Response("Failed to load image", { status: 500 });
+        }
+      }
+
+      // -------------------------------------------------------------
       // 11. BACKUP & RESTORE ROUTES
       // -------------------------------------------------------------
-      
+
       // Export all data as JSON
       if (url.pathname === "/api/backup" && method === "GET") {
         // Get all data in parallel

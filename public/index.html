@@ -24,6 +24,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
     html, body {
   touch-action: manipulation;
@@ -128,6 +129,93 @@
       -webkit-overflow-scrolling: touch;
       white-space: nowrap;
       padding-bottom: 4px;
+    }
+
+    /* ===== IMAGE PREVIEW STYLES ===== */
+    .image-preview-card {
+      border: 2px dashed #dee2e6;
+      border-radius: 12px;
+      padding: 12px;
+      background-color: #f8f9fa;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-preview-card:hover {
+      border-color: #2563eb;
+      background-color: #eef4ff;
+    }
+    .image-preview-card.has-image {
+      border-style: solid;
+      border-color: #2563eb;
+      background-color: #fff;
+    }
+    .image-preview-card.is-empty {
+      color: #6c757d;
+    }
+    .image-preview-card img {
+      max-width: 100%;
+      max-height: 150px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    .image-preview-label {
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .image-stats {
+      font-size: 0.8rem;
+      padding: 8px 12px;
+      background-color: #e7f3ff;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    .image-modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .image-modal-content {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+    }
+    .image-modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 10000;
+    }
+    .processing-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      z-index: 10;
+    }
+    .image-preview-wrapper {
+      position: relative;
     }
     .nav-tabs-scroll .nav-item {
       flex: 0 0 auto;
@@ -1130,13 +1218,45 @@
 </label>
 
 <input type="hidden" id="billMonthInput">
-        <div class="mb-3">
-          <label class="form-label fw-bold">อัปโหลดรูปภาพบิลไฟฟ้า</label>
-          <input type="file" class="form-control" id="billImageInput" accept="image/*" capture="environment" onchange="handleBillImageUpload()">
-          <div id="billOcrFeedback" class="mt-2 text-muted small">
-            📷 อัปโหลดรูปบิลไฟฟ้าเพื่อช่วยกรอกข้อมูลอัตโนมัติ
+
+        <!-- 📷 รูปบิลไฟฟ้า -->
+        <div class="mb-3 mt-3">
+          <label class="form-label fw-bold">📷 รูปบิลไฟฟ้า</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="image-preview-wrapper">
+                <div id="billImagePreviewCurrent" class="image-preview-card is-empty" onclick="handleBillImageClick()">
+                  <div class="text-center">
+                    <div style="font-size: 2rem;">📷</div>
+                    <div class="small">รูปเดือนปัจจุบัน</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div id="billImagePreviewPrevious" class="image-preview-card is-empty">
+                <div class="text-center">
+                  <div style="font-size: 2rem;">📁</div>
+                  <div class="small">รูปเดือนก่อน<br><span class="text-muted">(Read Only)</span></div>
+                </div>
+              </div>
+            </div>
           </div>
+          <div id="billImageStats" class="image-stats d-none"></div>
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <button class="btn btn-outline-primary touch-target" id="btnUploadBillImage" onclick="document.getElementById('billImageInput').click()">
+              📤 อัปโหลดรูป
+            </button>
+            <button class="btn btn-outline-danger touch-target d-none" id="btnDeleteBillImage" onclick="deleteBillImage()">
+              🗑️ ลบรูป
+            </button>
+            <button class="btn btn-outline-secondary touch-target d-none" id="btnReplaceBillImage" onclick="document.getElementById('billImageInput').click()">
+              🔄 เปลี่ยนรูป
+            </button>
+          </div>
+          <input type="file" class="d-none" id="billImageInput" accept="image/jpeg,image/png,image/heic,image/heif" onchange="handleBillImageUpload(event)">
         </div>
+
         <div class="mb-3">
           <label class="form-label fw-bold">จำนวนหน่วยรวม (kWh)</label>
           <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control" id="billUnitInput" placeholder="เช่น 924" oninput="sanitizeAndValidateBillInput()">
@@ -1165,13 +1285,45 @@
 </label>
 
 <input type="hidden" id="meterMonthInput">
-        <div class="mb-3">
-          <label class="form-label fw-bold">อัปโหลดรูปมิเตอร์ไฟฟ้า (หน้าปัดกลไก)</label>
-          <input type="file" class="form-control" id="meterImageInput" accept="image/*" capture="environment" onchange="handleMeterImageUpload()">
-          <div id="meterOcrFeedback" class="mt-2 text-muted small">
-            📷 อัปโหลดรูปมิเตอร์เพื่อช่วยกรอกข้อมูลอัตโนมัติ
+
+        <!-- 📷 รูปมิเตอร์ไฟฟ้า -->
+        <div class="mb-3 mt-3">
+          <label class="form-label fw-bold">📷 รูปมิเตอร์ไฟฟ้า</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="image-preview-wrapper">
+                <div id="meterImagePreviewCurrent" class="image-preview-card is-empty" onclick="handleMeterImageClick()">
+                  <div class="text-center">
+                    <div style="font-size: 2rem;">📷</div>
+                    <div class="small">รูปเดือนปัจจุบัน</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div id="meterImagePreviewPrevious" class="image-preview-card is-empty">
+                <div class="text-center">
+                  <div style="font-size: 2rem;">📁</div>
+                  <div class="small">รูปเดือนก่อน<br><span class="text-muted">(Read Only)</span></div>
+                </div>
+              </div>
+            </div>
           </div>
+          <div id="meterImageStats" class="image-stats d-none"></div>
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <button class="btn btn-outline-primary touch-target" id="btnUploadMeterImage" onclick="document.getElementById('meterImageInput').click()">
+              📤 อัปโหลดรูป
+            </button>
+            <button class="btn btn-outline-danger touch-target d-none" id="btnDeleteMeterImage" onclick="deleteMeterImage()">
+              🗑️ ลบรูป
+            </button>
+            <button class="btn btn-outline-secondary touch-target d-none" id="btnReplaceMeterImage" onclick="document.getElementById('meterImageInput').click()">
+              🔄 เปลี่ยนรูป
+            </button>
+          </div>
+          <input type="file" class="d-none" id="meterImageInput" accept="image/jpeg,image/png,image/heic,image/heif" onchange="handleMeterImageUpload(event)">
         </div>
+
         <div class="mb-3">
           <div class="d-flex justify-content-between align-items-center">
             <label class="form-label fw-bold m-0">เลขมิเตอร์เดือนก่อน (หน่วยเต็ม)</label>
@@ -1876,10 +2028,19 @@ console.error('❌ Service Worker Error', err);
     });
   }
 
-  function showToast(message) {
+  function showToast(message, type) {
     document.getElementById("toastMessage").innerText = message;
     const toastEl = document.getElementById("copyToast");
-    const toast = new bootstrap.Toast(toastEl, { delay: 2500 });
+    // Reset background class
+    toastEl.classList.remove("bg-success", "bg-danger", "bg-warning", "text-white");
+    if (type === "danger") {
+      toastEl.classList.add("bg-danger", "text-white");
+    } else if (type === "warning") {
+      toastEl.classList.add("bg-warning");
+    } else {
+      toastEl.classList.add("bg-success", "text-white");
+    }
+    const toast = new bootstrap.Toast(toastEl, { delay: type === "danger" ? 4000 : 2500 });
     toast.show();
   }
 
@@ -2770,6 +2931,8 @@ ${owner2Items}
     } catch (err) {
       console.error("Failed to load utility bill", err);
     }
+    // Load image preview (non-blocking, doesn't affect bill data)
+    loadBillImagePreview(month);
   }
 
   // ========================================
@@ -3027,6 +3190,8 @@ ${owner2Items}
     } catch (err) {
       console.error("Failed to load meter reading", err);
     }
+    // Load image preview (non-blocking, doesn't affect meter data)
+    loadMeterImagePreview(month);
   }
 
   async function saveMeterReading() {
@@ -3082,65 +3247,495 @@ ${owner2Items}
     }
   }
 
-  async function handleBillImageUpload() {
-    const file = document.getElementById("billImageInput").files[0];
+  async function handleBillImageUpload(event) {
+    const file = event?.target?.files?.[0];
     if (!file) return;
 
-    const feedback = document.getElementById("billOcrFeedback");
-    feedback.innerText = "กำลังประมวลผลรูปภาพบิลไฟหลวง...";
+    // [Fix 1] เก็บ month ทันทีที่เริ่ม upload เพื่อป้องกัน race condition
+    const month = currentSelectedMonth;
+    if (!month) {
+      showToast("กรุณาเลือกเดือนก่อนอัปโหลดรูป", "warning");
+      event.target.value = "";
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result;
-      try {
-        const res = await fetch("/api/ocr/bill", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64 })
-        });
-        const ocr = await res.json();
-        if (ocr.unit !== null) document.getElementById("billUnitInput").value = ocr.unit;
-        if (ocr.amount !== null) document.getElementById("billAmountInput").value = ocr.amount;
-        
-        // Trigger validation after OCR fill
-        sanitizeAndValidateBillInput();
-        
-        feedback.innerText = "ℹ️ กรุณาตรวจสอบตัวเลขจากบิลและพิมพ์ยืนยันในช่องด้านล่าง";
-      } catch (err) {
-        feedback.innerText = "ℹ️ สามารถกรอกตัวเลขจากบิลลงในช่องด้านล่างได้ทันที";
+    // [Fix 3] ป้องกัน concurrent upload
+    if (isUploadingBillImage) {
+      showToast("กรุณารอให้อัปโหลดรูปบิลเสร็จก่อน", "warning");
+      event.target.value = "";
+      return;
+    }
+    isUploadingBillImage = true;
+
+    const feedback = document.getElementById("billImageStats");
+    try {
+      feedback.classList.remove("d-none");
+      feedback.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังประมวลผลรูปภาพ...';
+
+      // Process image client-side
+      const processed = await processImage(file, feedback);
+
+      // Show compression stats before upload
+      feedback.innerHTML = `
+        📊 <strong>ขนาดเดิม:</strong> ${formatFileSize(processed.originalSize)} →
+        <strong>หลังบีบอัด:</strong> ${formatFileSize(processed.optimizedSize)}
+        (ประหยัด ${processed.savedPercent}%)
+        <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
+      `;
+
+      const formData = new FormData();
+      formData.append("image", processed.fullBlob, "image.webp");
+      formData.append("thumb", processed.thumbBlob, "thumb.webp");
+      formData.append("month", month);
+      formData.append("originalSize", processed.originalSize);
+
+      const res = await fetch("/api/bill-image", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+
+      // Success - hide stats, reload previews
+      feedback.classList.add("d-none");
+      feedback.innerHTML = "";
+      event.target.value = ""; // Reset file input
+
+      // [Fix 1] ตรวจสอบก่อน reload ว่ายังอยู่เดือนเดิม
+      if (currentSelectedMonth === month) {
+        await loadBillImagePreview(month);
       }
-    };
-    reader.readAsDataURL(file);
+      showToast("อัปโหลดรูปบิลสำเร็จ");
+    } catch (err) {
+      feedback.innerHTML = `<span class="text-danger">❌ ${err.message}</span>`;
+      showToast(err.message, "danger");
+      event.target.value = "";
+    } finally {
+      // [Fix 3] release lock
+      isUploadingBillImage = false;
+    }
   }
 
-  async function handleMeterImageUpload() {
-    const file = document.getElementById("meterImageInput").files[0];
+  async function handleMeterImageUpload(event) {
+    const file = event?.target?.files?.[0];
     if (!file) return;
 
-    const feedback = document.getElementById("meterOcrFeedback");
-    feedback.innerText = "กำลังประมวลผลรูปภาพมิเตอร์ไฟฟ้า...";
+    // [Fix 1] เก็บ month ทันทีที่เริ่ม upload เพื่อป้องกัน race condition
+    const month = currentSelectedMonth;
+    if (!month) {
+      showToast("กรุณาเลือกเดือนก่อนอัปโหลดรูป", "warning");
+      event.target.value = "";
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result;
-      try {
-        const res = await fetch("/api/ocr/meter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64 })
-        });
-        const ocr = await res.json();
-        if (ocr.reading !== null) {
-          document.getElementById("meterCurrInput").value = Math.floor(ocr.reading);
-          // Trigger validation after OCR fill
-          sanitizeAndValidateMeterInput();
-        }
-        feedback.innerText = "ℹ️ กรุณาตรวจสอบตัวเลขหน้าปัดและพิมพ์ยืนยันในช่องด้านล่าง";
-      } catch (err) {
-        feedback.innerText = "ℹ️ สามารถกรอกตัวเลขหน้าปัดลงในช่องด้านล่างได้ทันที";
+    // [Fix 3] ป้องกัน concurrent upload
+    if (isUploadingMeterImage) {
+      showToast("กรุณารอให้อัปโหลดรูปมิเตอร์เสร็จก่อน", "warning");
+      event.target.value = "";
+      return;
+    }
+    isUploadingMeterImage = true;
+
+    const feedback = document.getElementById("meterImageStats");
+    try {
+      feedback.classList.remove("d-none");
+      feedback.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังประมวลผลรูปภาพ...';
+
+      const processed = await processImage(file, feedback);
+
+      feedback.innerHTML = `
+        📊 <strong>ขนาดเดิม:</strong> ${formatFileSize(processed.originalSize)} →
+        <strong>หลังบีบอัด:</strong> ${formatFileSize(processed.optimizedSize)}
+        (ประหยัด ${processed.savedPercent}%)
+        <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
+      `;
+
+      const formData = new FormData();
+      formData.append("image", processed.fullBlob, "image.webp");
+      formData.append("thumb", processed.thumbBlob, "thumb.webp");
+      formData.append("month", month);
+      formData.append("originalSize", processed.originalSize);
+
+      const res = await fetch("/api/meter-image", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+
+      feedback.classList.add("d-none");
+      feedback.innerHTML = "";
+      event.target.value = "";
+
+      // [Fix 1] ตรวจสอบก่อน reload ว่ายังอยู่เดือนเดิม
+      if (currentSelectedMonth === month) {
+        await loadMeterImagePreview(month);
       }
+      showToast("อัปโหลดรูปมิเตอร์สำเร็จ");
+    } catch (err) {
+      feedback.innerHTML = `<span class="text-danger">❌ ${err.message}</span>`;
+      showToast(err.message, "danger");
+      event.target.value = "";
+    } finally {
+      // [Fix 3] release lock
+      isUploadingMeterImage = false;
+    }
+  }
+
+  // ========================================
+  // IMAGE PROCESSING & PREVIEW FUNCTIONS
+  // ========================================
+
+  // Upload lock flags (prevent concurrent uploads of same type)
+  let isUploadingBillImage = false;
+  let isUploadingMeterImage = false;
+
+  // Format file size for display
+  function formatFileSize(bytes) {
+    if (!bytes || bytes < 0) return "0 B";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  // Convert HEIC/HEIF to JPEG (client-side fallback)
+  async function convertHeicIfNeeded(file) {
+    const isHeic = file.type === "image/heic" || file.type === "image/heif" ||
+                   file.name.toLowerCase().endsWith(".heic") ||
+                   file.name.toLowerCase().endsWith(".heif");
+
+    if (!isHeic) return file;
+
+    if (typeof heic2any === "undefined") {
+      throw new Error("ไม่สามารถเปิดไฟล์ HEIC ได้ กรุณาเลือกไฟล์ JPG หรือ PNG หรือลองถ่ายรูปใหม่");
+    }
+
+    try {
+      const converted = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.9
+      });
+      return new File([converted], file.name.replace(/\.heic$/i, ".jpg"), {
+        type: "image/jpeg"
+      });
+    } catch (e) {
+      throw new Error("แปลง HEIC ไม่สำเร็จ กรุณาเลือกไฟล์ JPG หรือ PNG หรือลองถ่ายรูปใหม่");
+    }
+  }
+
+  // Load image from File/Blob into HTMLImageElement
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("ไม่สามารถอ่านไฟล์รูปภาพได้"));
+      };
+      img.src = url;
+    });
+  }
+
+  // Resize image to fit within maxDimension
+  function resizeImage(img, maxDimension) {
+    let { width, height } = img;
+
+    if (width <= maxDimension && height <= maxDimension) {
+      return { width, height };
+    }
+
+    const scale = maxDimension / Math.max(width, height);
+    return {
+      width: Math.round(width * scale),
+      height: Math.round(height * scale)
     };
-    reader.readAsDataURL(file);
+  }
+
+  // Draw image to canvas with resize
+  function drawToCanvas(img, width, height) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas;
+  }
+
+  // Convert canvas to Blob (WebP)
+  function canvasToBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("แปลง WebP ไม่สำเร็จ")),
+        "image/webp",
+        quality
+      );
+    });
+  }
+
+  // Main image processing pipeline
+  async function processImage(file, feedbackEl) {
+    // Validate file size (reject > 15MB to prevent OOM)
+    if (file.size > 15 * 1024 * 1024) {
+      throw new Error("ไฟล์ใหญ่เกินไป (สูงสุด 15MB) กรุณาเลือกรูปอื่น");
+    }
+
+    // Validate MIME type
+    const validTypes = ["image/jpeg", "image/png", "image/heic", "image/heif"];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpe?g|png|heic|heif)$/i)) {
+      throw new Error("รองรับเฉพาะไฟล์ JPG, PNG, HEIC, HEIF เท่านั้น");
+    }
+
+    if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังแปลง HEIC...';
+    const normalizedFile = await convertHeicIfNeeded(file);
+    const originalSize = file.size;
+
+    if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังโหลดรูปภาพ...';
+    const img = await loadImageFromFile(normalizedFile);
+
+    if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังปรับขนาดรูป...';
+    const fullSize = resizeImage(img, 1600);
+    const fullCanvas = drawToCanvas(img, fullSize.width, fullSize.height);
+
+    if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังสร้าง thumbnail...';
+    const thumbSize = resizeImage(img, 300);
+    const thumbCanvas = drawToCanvas(img, thumbSize.width, thumbSize.height);
+
+    if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบีบอัดรูป...';
+    let fullBlob = await canvasToBlob(fullCanvas, 0.8);
+    const thumbBlob = await canvasToBlob(thumbCanvas, 0.8);
+
+    // Quality reduction loop (max 1MB, min quality 0.75)
+    let quality = 0.8;
+    while (fullBlob.size > 1024 * 1024 && quality > 0.75) {
+      quality -= 0.02;
+      fullBlob = await canvasToBlob(fullCanvas, quality);
+    }
+
+    const optimizedSize = fullBlob.size;
+    const savedPercent = originalSize > 0
+      ? ((originalSize - optimizedSize) / originalSize * 100).toFixed(1)
+      : 0;
+
+    return {
+      fullBlob,
+      thumbBlob,
+      originalSize,
+      optimizedSize,
+      savedPercent
+    };
+  }
+
+  // Load bill image preview (current + previous)
+  async function loadBillImagePreview(month) {
+    if (!month) return;
+    try {
+      const res = await fetch(`/api/bill-image/${month}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      renderBillImagePreview(data);
+    } catch (err) {
+      console.error("Failed to load bill image preview:", err);
+      // Silently fail - bill data still works
+    }
+  }
+
+  function renderBillImagePreview(data) {
+    const currentEl = document.getElementById("billImagePreviewCurrent");
+    const previousEl = document.getElementById("billImagePreviewPrevious");
+    const btnDelete = document.getElementById("btnDeleteBillImage");
+    const btnReplace = document.getElementById("btnReplaceBillImage");
+
+    // Current month
+    if (data?.current) {
+      currentEl.className = "image-preview-card has-image";
+      currentEl.dataset.fullImageUrl = data.current.imageUrl; // [Fix 2] เก็บ URL ไว้
+      currentEl.dataset.thumbUrl = data.current.thumbUrl;
+      currentEl.innerHTML = `
+        <img src="${data.current.thumbUrl}" alt="รูปบิลเดือนปัจจุบัน" loading="lazy">
+        <div class="image-preview-label text-success">✓ มีรูปแล้ว</div>
+      `;
+      btnDelete.classList.remove("d-none");
+      btnReplace.classList.remove("d-none");
+    } else {
+      currentEl.className = "image-preview-card is-empty";
+      delete currentEl.dataset.fullImageUrl; // [Fix 2] clear
+      delete currentEl.dataset.thumbUrl;
+      currentEl.innerHTML = `
+        <div class="text-center">
+          <div style="font-size: 2rem;">📷</div>
+          <div class="small">รูปเดือนปัจจุบัน</div>
+          <div class="text-muted small">ยังไม่มีรูป</div>
+        </div>
+      `;
+      btnDelete.classList.add("d-none");
+      btnReplace.classList.add("d-none");
+    }
+
+    // Previous month
+    if (data?.previous) {
+      previousEl.className = "image-preview-card has-image";
+      previousEl.dataset.fullImageUrl = data.previous.imageUrl; // [Fix 2]
+      previousEl.dataset.thumbUrl = data.previous.thumbUrl;
+      previousEl.innerHTML = `
+        <img src="${data.previous.thumbUrl}" alt="รูปบิลเดือนก่อน" loading="lazy">
+        <div class="image-preview-label text-muted">เดือนก่อน (Read Only)</div>
+      `;
+    } else {
+      previousEl.className = "image-preview-card is-empty";
+      delete previousEl.dataset.fullImageUrl;
+      delete previousEl.dataset.thumbUrl;
+      previousEl.innerHTML = `
+        <div class="text-center">
+          <div style="font-size: 2rem;">📁</div>
+          <div class="small">รูปเดือนก่อน<br><span class="text-muted">(Read Only)</span></div>
+          <div class="text-muted small">ไม่มีรูปเดือนก่อน</div>
+        </div>
+      `;
+    }
+  }
+
+  // Load meter image preview (current + previous)
+  async function loadMeterImagePreview(month) {
+    if (!month) return;
+    try {
+      const res = await fetch(`/api/meter-image/${month}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      renderMeterImagePreview(data);
+    } catch (err) {
+      console.error("Failed to load meter image preview:", err);
+    }
+  }
+
+  function renderMeterImagePreview(data) {
+    const currentEl = document.getElementById("meterImagePreviewCurrent");
+    const previousEl = document.getElementById("meterImagePreviewPrevious");
+    const btnDelete = document.getElementById("btnDeleteMeterImage");
+    const btnReplace = document.getElementById("btnReplaceMeterImage");
+
+    if (data?.current) {
+      currentEl.className = "image-preview-card has-image";
+      currentEl.dataset.fullImageUrl = data.current.imageUrl; // [Fix 2]
+      currentEl.dataset.thumbUrl = data.current.thumbUrl;
+      currentEl.innerHTML = `
+        <img src="${data.current.thumbUrl}" alt="รูปมิเตอร์เดือนปัจจุบัน" loading="lazy">
+        <div class="image-preview-label text-success">✓ มีรูปแล้ว</div>
+      `;
+      btnDelete.classList.remove("d-none");
+      btnReplace.classList.remove("d-none");
+    } else {
+      currentEl.className = "image-preview-card is-empty";
+      delete currentEl.dataset.fullImageUrl;
+      delete currentEl.dataset.thumbUrl;
+      currentEl.innerHTML = `
+        <div class="text-center">
+          <div style="font-size: 2rem;">📷</div>
+          <div class="small">รูปเดือนปัจจุบัน</div>
+          <div class="text-muted small">ยังไม่มีรูป</div>
+        </div>
+      `;
+      btnDelete.classList.add("d-none");
+      btnReplace.classList.add("d-none");
+    }
+
+    if (data?.previous) {
+      previousEl.className = "image-preview-card has-image";
+      previousEl.dataset.fullImageUrl = data.previous.imageUrl; // [Fix 2]
+      previousEl.dataset.thumbUrl = data.previous.thumbUrl;
+      previousEl.innerHTML = `
+        <img src="${data.previous.thumbUrl}" alt="รูปมิเตอร์เดือนก่อน" loading="lazy">
+        <div class="image-preview-label text-muted">เดือนก่อน (Read Only)</div>
+      `;
+    } else {
+      previousEl.className = "image-preview-card is-empty";
+      delete previousEl.dataset.fullImageUrl;
+      delete previousEl.dataset.thumbUrl;
+      previousEl.innerHTML = `
+        <div class="text-center">
+          <div style="font-size: 2rem;">📁</div>
+          <div class="small">รูปเดือนก่อน<br><span class="text-muted">(Read Only)</span></div>
+          <div class="text-muted small">ไม่มีรูปเดือนก่อน</div>
+        </div>
+      `;
+    }
+  }
+
+  // Click to view full image
+  function handleBillImageClick() {
+    // [Fix 2] ใช้ imageUrl ที่เก็บไว้ใน dataset แทน string replace
+    const currentEl = document.getElementById("billImagePreviewCurrent");
+    const fullUrl = currentEl?.dataset?.fullImageUrl;
+    if (fullUrl) showImageModal(fullUrl, "รูปบิลไฟฟ้า");
+  }
+
+  function handleMeterImageClick() {
+    // [Fix 2] ใช้ imageUrl ที่เก็บไว้ใน dataset แทน string replace
+    const currentEl = document.getElementById("meterImagePreviewCurrent");
+    const fullUrl = currentEl?.dataset?.fullImageUrl;
+    if (fullUrl) showImageModal(fullUrl, "รูปมิเตอร์ไฟฟ้า");
+  }
+
+  function showImageModal(src, title) {
+    // [Fix 6] ลบ modal เก่าก่อน (single instance)
+    const existing = document.querySelector(".image-modal-backdrop");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.className = "image-modal-backdrop";
+    modal.innerHTML = `
+      <button class="image-modal-close" onclick="closeImageModal()">✕</button>
+      <img class="image-modal-content" src="${src}" alt="${title}">
+    `;
+    modal.onclick = (e) => {
+      if (e.target === modal) closeImageModal();
+    };
+    document.body.appendChild(modal);
+  }
+
+  // [Fix 6] helper สำหรับปิด (ใช้ร่วมกับ onclick)
+  function closeImageModal() {
+    const modal = document.querySelector(".image-modal-backdrop");
+    if (modal) modal.remove();
+  }
+
+  // Delete image functions
+  async function deleteBillImage() {
+    const month = currentSelectedMonth;
+    if (!month) return;
+    if (!confirm(`ต้องการลบรูปบิลของเดือน ${month} หรือไม่?\n(การลบนี้ไม่สามารถกู้คืนได้)`)) return;
+
+    try {
+      const res = await fetch(`/api/bill-image/${month}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "ลบรูปไม่สำเร็จ");
+      await loadBillImagePreview(month);
+      showToast("ลบรูปบิลสำเร็จ");
+    } catch (err) {
+      showToast(err.message, "danger");
+    }
+  }
+
+  async function deleteMeterImage() {
+    const month = currentSelectedMonth;
+    if (!month) return;
+    if (!confirm(`ต้องการลบรูปมิเตอร์ของเดือน ${month} หรือไม่?\n(การลบนี้ไม่สามารถกู้คืนได้)`)) return;
+
+    try {
+      const res = await fetch(`/api/meter-image/${month}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "ลบรูปไม่สำเร็จ");
+      await loadMeterImagePreview(month);
+      showToast("ลบรูปมิเตอร์สำเร็จ");
+    } catch (err) {
+      showToast(err.message, "danger");
+    }
   }
 
   async function executeCalculation() {
