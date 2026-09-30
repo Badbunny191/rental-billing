@@ -1139,11 +1139,11 @@
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">จำนวนหน่วยรวม (kWh)</label>
-          <input type="number" inputmode="numeric" class="form-control" id="billUnitInput" placeholder="เช่น 924" step="any" min="0">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control" id="billUnitInput" placeholder="เช่น 924" oninput="sanitizeAndValidateBillInput()">
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">ยอดเงินรวมสุทธิที่ต้องชำระ (บาท)</label>
-          <input type="number" inputmode="decimal" class="form-control" id="billAmountInput" placeholder="เช่น 4325.95" step="any" min="0">
+          <input type="text" inputmode="decimal" class="form-control" id="billAmountInput" placeholder="เช่น 4325.95" oninput="sanitizeAndValidateBillInput()">
         </div>
         <button class="btn btn-primary btn-lg w-100 mt-2 touch-target" id="btnSaveBill" onclick="saveUtilityBill()">
           บันทึกข้อมูลบิลไฟหลวง
@@ -1177,11 +1177,11 @@
             <label class="form-label fw-bold m-0">เลขมิเตอร์เดือนก่อน (หน่วยเต็ม)</label>
             <span class="badge bg-secondary" id="autoFillMeterBadge">ระบบค้นหาอัตโนมัติ</span>
           </div>
-          <input type="number" inputmode="numeric" class="form-control mt-1" id="meterPrevInput" placeholder="เช่น 20365" step="1" min="0" oninput="calculateRealtimeMeterUnits()">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control mt-1" id="meterPrevInput" placeholder="เช่น 20365" oninput="sanitizeAndValidateMeterInput()">
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">เลขมิเตอร์เดือนปัจจุบัน (หน่วยเต็ม)</label>
-          <input type="number" inputmode="numeric" class="form-control" id="meterCurrInput" placeholder="เช่น 20782" step="1" min="0" oninput="calculateRealtimeMeterUnits()">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control" id="meterCurrInput" placeholder="เช่น 20782" oninput="sanitizeAndValidateMeterInput()">
           <div id="meterRealtimeFeedback" class="mt-2 small fw-bold text-primary d-none">
             ⚡ ใช้ไฟ: <span id="meterRealtimeUnitsText">0</span> หน่วย
           </div>
@@ -1212,7 +1212,7 @@
         </div>
         <div class="mb-3">
           <label class="form-label fw-bold">ส่วนลดค่าเช่าของเดือนนี้ (บาท)</label>
-          <input type="number" class="form-control" id="processDiscountInput" placeholder="500" step="any" min="0">
+          <input type="text" inputmode="decimal" class="form-control" id="processDiscountInput" placeholder="500" oninput="sanitizeAndValidateDiscountInput()">
         </div>
         <button class="btn btn-success btn-lg w-100 mt-3 touch-target" id="btnExecuteCalc" onclick="executeCalculation()">
           คำนวณและบันทึกยอด
@@ -2772,6 +2772,193 @@ ${owner2Items}
     }
   }
 
+  // ========================================
+  // INPUT SANITIZATION FUNCTIONS
+  // ========================================
+
+  // Sanitize integer: keep only 0-9
+  function sanitizeInteger(input) {
+    return input.value.replace(/[^0-9]/g, "");
+  }
+
+  // Sanitize decimal: keep only 0-9 and one decimal point
+  function sanitizeDecimal(input) {
+    let val = input.value.replace(/[^0-9.]/g, "");
+    // Keep only one decimal point
+    const parts = val.split(".");
+    if (parts.length > 2) {
+      val = parts[0] + "." + parts.slice(1).join("");
+    }
+    return val;
+  }
+
+  // ========================================
+  // BILL INPUT SANITIZATION + VALIDATION (หน้าบิลไฟหลวง)
+  // ========================================
+
+  function sanitizeAndValidateBillInput() {
+    const unitInput = document.getElementById("billUnitInput");
+    const amountInput = document.getElementById("billAmountInput");
+    const btn = document.getElementById("btnSaveBill");
+
+    // Sanitize kWh: keep only 0-9
+    const sanitizedUnit = sanitizeInteger(unitInput);
+    if (unitInput.value !== sanitizedUnit) {
+      unitInput.value = sanitizedUnit;
+    }
+
+    // Sanitize amount: keep only 0-9 and one decimal point
+    const sanitizedAmount = sanitizeDecimal(amountInput);
+    if (amountInput.value !== sanitizedAmount) {
+      amountInput.value = sanitizedAmount;
+    }
+
+    // Validate
+    const unit = unitInput.value;
+    const amount = amountInput.value;
+
+    // Check kWh: must be integer only
+    const unitInvalid = unit !== "" && !/^[0-9]+$/.test(unit);
+    // Check amount: must be valid decimal (integer or with one decimal point)
+    const amountInvalid = amount !== "" && !/^[0-9]+(\.[0-9]*)?$/.test(amount);
+
+    if (unitInvalid) {
+      unitInput.style.borderColor = "#dc3545";
+    } else {
+      unitInput.style.borderColor = "";
+    }
+
+    if (amountInvalid) {
+      amountInput.style.borderColor = "#dc3545";
+    } else {
+      amountInput.style.borderColor = "";
+    }
+
+    // Disable button if any field is invalid
+    const hasInvalid = unitInvalid || amountInvalid;
+    const hasEmpty = unit === "" || amount === "";
+
+    if (hasInvalid) {
+      btn.disabled = true;
+    } else if (hasEmpty) {
+      btn.disabled = true;
+    } else {
+      btn.disabled = false;
+    }
+  }
+
+  function showBillValidationError(field, message) {
+    const alertBox = document.getElementById("billAlert");
+    alertBox.innerHTML = `<div class="alert alert-danger" style="color: #dc3545; font-weight: bold;">⚠️ ${message}</div>`;
+  }
+
+  // ========================================
+  // METER INPUT SANITIZATION + VALIDATION (หน้ามิเตอร์)
+  // ========================================
+
+  function sanitizeAndValidateMeterInput() {
+    const prevInput = document.getElementById("meterPrevInput");
+    const currInput = document.getElementById("meterCurrInput");
+    const btn = document.getElementById("btnSaveMeter");
+    const feedback = document.getElementById("meterRealtimeFeedback");
+
+    // Sanitize prev: keep only 0-9
+    const sanitizedPrev = sanitizeInteger(prevInput);
+    if (prevInput.value !== sanitizedPrev) {
+      prevInput.value = sanitizedPrev;
+    }
+
+    // Sanitize curr: keep only 0-9
+    const sanitizedCurr = sanitizeInteger(currInput);
+    if (currInput.value !== sanitizedCurr) {
+      currInput.value = sanitizedCurr;
+    }
+
+    const prev = prevInput.value;
+    const curr = currInput.value;
+
+    // Check: must be integer only (no decimals allowed)
+    const prevInvalid = prev !== "" && !/^[0-9]+$/.test(prev);
+    const currInvalid = curr !== "" && !/^[0-9]+$/.test(curr);
+
+    if (prevInvalid) {
+      prevInput.style.borderColor = "#dc3545";
+    } else {
+      prevInput.style.borderColor = "";
+    }
+
+    if (currInvalid) {
+      currInput.style.borderColor = "#dc3545";
+    } else {
+      currInput.style.borderColor = "";
+    }
+
+    // If invalid characters detected, show error and return early
+    if (prevInvalid || currInvalid) {
+      feedback.innerHTML = `<span style="color: #dc3545; font-weight: bold;">⚠️ กรุณากรอกตัวเลขให้ถูกต้อง</span>`;
+      feedback.className = "mt-2 small";
+      feedback.classList.remove("d-none");
+      btn.disabled = true;
+      return;
+    }
+
+    // If empty, hide feedback and enable button
+    if (prev === "" || curr === "") {
+      feedback.classList.add("d-none");
+      btn.disabled = false;
+      return;
+    }
+
+    const prevNum = Number(prev);
+    const currNum = Number(curr);
+
+    // If curr < prev, show error
+    if (currNum < prevNum) {
+      feedback.innerHTML = `<span style="color: #dc3545; font-weight: bold;">⚠️ ไม่สามารถกรอกเลขมิเตอร์ปัจจุบันน้อยกว่างวดล่าสุดได้</span>`;
+      feedback.className = "mt-2 small";
+      feedback.classList.remove("d-none");
+      btn.disabled = true;
+      return;
+    }
+
+    // Valid: show units
+    const units = currNum - prevNum;
+    feedback.innerHTML = `<span style="color: #198754; font-weight: bold;">⚡ ใช้ไฟ: <span id="meterRealtimeUnitsText">${units.toLocaleString("th-TH")}</span> หน่วย</span>`;
+    feedback.className = "mt-2 small";
+    feedback.classList.remove("d-none");
+    btn.disabled = false;
+  }
+
+  function showMeterValidationError(message) {
+    const alertBox = document.getElementById("meterAlert");
+    alertBox.innerHTML = `<div class="alert alert-danger" style="color: #dc3545; font-weight: bold;">⚠️ ${message}</div>`;
+  }
+
+  // ========================================
+  // DISCOUNT INPUT SANITIZATION + VALIDATION (หน้าคำนวณ)
+  // ========================================
+
+  function sanitizeAndValidateDiscountInput() {
+    const discountInput = document.getElementById("processDiscountInput");
+    const btn = document.getElementById("btnExecuteCalc");
+
+    // Sanitize: keep only 0-9 and one decimal point
+    const sanitized = sanitizeDecimal(discountInput);
+    if (discountInput.value !== sanitized) {
+      discountInput.value = sanitized;
+    }
+
+    // Validate: must be valid decimal
+    const discount = discountInput.value;
+    const isInvalid = discount !== "" && !/^[0-9]+(\.[0-9]*)?$/.test(discount);
+
+    if (isInvalid) {
+      discountInput.style.borderColor = "#dc3545";
+    } else {
+      discountInput.style.borderColor = "";
+    }
+  }
+
   async function saveUtilityBill() {
     const month = currentSelectedMonth;
     const unit = document.getElementById("billUnitInput").value;
@@ -2779,8 +2966,21 @@ ${owner2Items}
     const alertBox = document.getElementById("billAlert");
     alertBox.innerHTML = "";
 
+    // 1. Check empty
     if (!month || unit === "" || amount === "") {
       alertBox.innerHTML = `<div class="alert alert-warning">กรุณากรอกข้อมูลเดือน หน่วยไฟ และยอดเงินให้ครบถ้วน</div>`;
+      return;
+    }
+
+    // 2. Validate kWh: integer only
+    if (!/^[0-9]+$/.test(unit)) {
+      showBillValidationError("unit", "กรุณากรอกจำนวนหน่วยรวม (kWh) เป็นตัวเลขเท่านั้น");
+      return;
+    }
+
+    // 3. Validate amount: valid decimal
+    if (!/^[0-9]+(\.[0-9]+)?$/.test(amount)) {
+      showBillValidationError("amount", "กรุณากรอกยอดเงินรวมสุทธิเป็นตัวเลขที่ถูกต้อง");
       return;
     }
 
@@ -2831,13 +3031,33 @@ ${owner2Items}
 
   async function saveMeterReading() {
     const month = currentSelectedMonth;
-    const previousReading = document.getElementById("meterPrevInput").value;
-    const currentReading = document.getElementById("meterCurrInput").value;
+    const previousReadingRaw = document.getElementById("meterPrevInput").value;
+    const currentReadingRaw = document.getElementById("meterCurrInput").value;
     const alertBox = document.getElementById("meterAlert");
     alertBox.innerHTML = "";
 
-    if (!month || previousReading === "" || currentReading === "") {
-      alertBox.innerHTML = `<div class="alert alert-warning">กรุณากรอกเดือน และเลขมิเตอร์ทั้งสองช่องให้ครบถ้วน</div>`;
+    // 6. Backend Validation - ตรวจซ้ำอีกครั้งก่อนยิง API
+    if (!month) {
+      alertBox.innerHTML = `<div class="alert alert-warning">กรุณาระบุเดือนที่ต้องการบันทึก</div>`;
+      return;
+    }
+
+    if (previousReadingRaw === "" || currentReadingRaw === "") {
+      alertBox.innerHTML = `<div class="alert alert-warning">กรุณากรอกเลขมิเตอร์ทั้งสองช่องให้ครบถ้วน</div>`;
+      return;
+    }
+
+    // Validate: integers only (no decimals, no letters)
+    if (!/^[0-9]+$/.test(previousReadingRaw) || !/^[0-9]+$/.test(currentReadingRaw)) {
+      showMeterValidationError("กรุณากรอกตัวเลขให้ถูกต้อง");
+      return;
+    }
+
+    const previousReading = Number(previousReadingRaw);
+    const currentReading = Number(currentReadingRaw);
+
+    if (currentReading < previousReading) {
+      alertBox.innerHTML = `<div class="alert alert-danger">⚠️ ไม่สามารถกรอกเลขมิเตอร์ปัจจุบันน้อยกว่างวดล่าสุดได้</div>`;
       return;
     }
 
@@ -2846,7 +3066,7 @@ ${owner2Items}
       const res = await fetch("/api/meter-reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month, previousReading: Number(previousReading), currentReading: Number(currentReading) })
+        body: JSON.stringify({ month, previousReading, currentReading })
       });
       const data = await res.json();
       if (res.ok) {
@@ -2882,6 +3102,9 @@ ${owner2Items}
         if (ocr.unit !== null) document.getElementById("billUnitInput").value = ocr.unit;
         if (ocr.amount !== null) document.getElementById("billAmountInput").value = ocr.amount;
         
+        // Trigger validation after OCR fill
+        sanitizeAndValidateBillInput();
+        
         feedback.innerText = "ℹ️ กรุณาตรวจสอบตัวเลขจากบิลและพิมพ์ยืนยันในช่องด้านล่าง";
       } catch (err) {
         feedback.innerText = "ℹ️ สามารถกรอกตัวเลขจากบิลลงในช่องด้านล่างได้ทันที";
@@ -2909,6 +3132,8 @@ ${owner2Items}
         const ocr = await res.json();
         if (ocr.reading !== null) {
           document.getElementById("meterCurrInput").value = Math.floor(ocr.reading);
+          // Trigger validation after OCR fill
+          sanitizeAndValidateMeterInput();
         }
         feedback.innerText = "ℹ️ กรุณาตรวจสอบตัวเลขหน้าปัดและพิมพ์ยืนยันในช่องด้านล่าง";
       } catch (err) {
@@ -2997,25 +3222,7 @@ ${owner2Items}
     updatePaymentStatus(latestStatement.month, newStatus);
   }
 
-  function calculateRealtimeMeterUnits() {
-    const prev = Number(document.getElementById("meterPrevInput").value);
-    const curr = Number(document.getElementById("meterCurrInput").value);
-    const feedback = document.getElementById("meterRealtimeFeedback");
-    const textSpan = document.getElementById("meterRealtimeUnitsText");
 
-    if (!isNaN(prev) && !isNaN(curr) && curr >= prev && prev > 0 && curr > 0) {
-      const units = curr - prev;
-      textSpan.innerText = units.toLocaleString("th-TH");
-      feedback.className = "mt-2 small fw-bold text-success";
-      feedback.classList.remove("d-none");
-    } else if (curr > 0 && curr < prev) {
-      feedback.className = "mt-2 small fw-bold text-danger";
-      feedback.innerText = "⚠️ เลขมิเตอร์ปัจจุบันน้อยกว่าเลขเดือนก่อนหน้า";
-      feedback.classList.remove("d-none");
-    } else {
-      feedback.classList.add("d-none");
-    }
-  }
 
   function renderDashboard(statement) {
     latestStatement = statement;
@@ -3540,7 +3747,7 @@ const owner2Total =
 
       // 4. สร้าง Canvas จาก DOM
       const canvas = await html2canvas(pdfContainer, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
@@ -3564,8 +3771,13 @@ const owner2Total =
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      const imgData = canvas.toDataURL("image/png");
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      console.log({
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.8);
+      pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
 
       // 7. ดาวน์โหลด
       const filename = `invoice-${latestStatement.month}.pdf`;
