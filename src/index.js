@@ -768,15 +768,6 @@ export default {
       if (url.pathname === "/api/bill-image" && method === "POST") {
         try {
           const bucket = requireImageBucket(env);
-          // [BINDING TRACE POST] log R2 binding identity
-          console.log("[BINDING TRACE POST bill-image]", {
-            bucketCtor: bucket?.constructor?.name,
-            bucketProto: Object.getPrototypeOf(bucket)?.constructor?.name,
-            bucketKeys: bucket && typeof bucket === "object" ? Object.keys(bucket).slice(0, 10) : null,
-            hasList: typeof bucket?.list === "function",
-            hasGet: typeof bucket?.get === "function",
-            hasPut: typeof bucket?.put === "function"
-          });
           const formData = await request.formData();
           const image = formData.get("image");
           const thumb = formData.get("thumb");
@@ -816,126 +807,16 @@ export default {
           const imagePath = buildImagePath("bill", month, imageFilename);
           const thumbPath = buildImagePath("bill", month, thumbFilename);
 
-          // [DEBUG POST /api/bill-image] log paths ก่อน R2 upload
-          console.log("[DEBUG POST /api/bill-image] paths", {
-            month,
-            imagePath,
-            thumbPath,
-            imageFilename,
-            thumbFilename
-          });
-
-          // Step 1: Upload new images to R2 (using arrayBuffer workaround to prove stream issue)
-
-          // [DEBUG POST /api/bill-image] log image/thumb metadata ก่อน put
-          console.log("[DEBUG POST /api/bill-image] pre-put metadata", {
-            imageSize: image.size,
-            imageType: image.type,
-            imageCtor: image.constructor?.name,
-            thumbSize: thumb.size,
-            thumbType: thumb.type,
-            thumbCtor: thumb.constructor?.name,
-            streamAvailable_image: typeof image.stream === "function",
-            streamAvailable_thumb: typeof thumb.stream === "function"
-          });
-
-          // [WORKAROUND] เปลี่ยนจาก .stream() → .arrayBuffer() เพื่อพิสูจน์ปัญหา stream
-          const imageBuffer = await image.arrayBuffer();
-          const thumbBuffer = await thumb.arrayBuffer();
-
-          console.log("[DEBUG POST /api/bill-image] buffer sizes", {
-            imageBufferBytes: imageBuffer.byteLength,
-            thumbBufferBytes: thumbBuffer.byteLength
-          });
-
-          const putImageResult = await bucket.put(imagePath, imageBuffer, {
+          // Step 1: Upload new images to R2 — กลับไปใช้ .stream() ชั่วคราวเพื่อพิสูจน์ปัญหา
+          const putImageResult = await bucket.put(imagePath, image.stream(), {
             httpMetadata: { contentType: "image/webp" }
           });
-          const putThumbResult = await bucket.put(thumbPath, thumbBuffer, {
-            httpMetadata: { contentType: "image/webp" }
-          });
-
-          // [PUT RESULT FULL] log ผลลัพธ์ R2 put แบบเต็ม
-          console.log("[PUT RESULT FULL IMAGE]", JSON.stringify({
-            resultType: typeof putImageResult,
-            resultIsNull: putImageResult === null,
-            resultStringified: String(putImageResult),
-            keysIfObject: putImageResult && typeof putImageResult === "object" ? Object.keys(putImageResult) : null,
-            uploadCompleted: putImageResult?.uploadCompleted ?? null,
-            version: putImageResult?.version ?? null,
-            etag: putImageResult?.etag ?? null,
-            checksums: putImageResult?.checksums ?? null,
-            customMetadata: putImageResult?.customMetadata ?? null,
-            httpMetadata: putImageResult?.httpMetadata ?? null
-          }, null, 2));
-
-          console.log("[PUT RESULT FULL THUMB]", JSON.stringify({
-            resultType: typeof putThumbResult,
-            resultIsNull: putThumbResult === null,
-            resultStringified: String(putThumbResult),
-            keysIfObject: putThumbResult && typeof putThumbResult === "object" ? Object.keys(putThumbResult) : null,
-            uploadCompleted: putThumbResult?.uploadCompleted ?? null,
-            version: putThumbResult?.version ?? null,
-            etag: putThumbResult?.etag ?? null,
-            checksums: putThumbResult?.checksums ?? null,
-            customMetadata: putThumbResult?.customMetadata ?? null,
-            httpMetadata: putThumbResult?.httpMetadata ?? null
-          }, null, 2));
-
-          // [BINDING TRACE POST] log R2 binding identity เพื่อพิสูจน์ว่าใช้ instance ไหน
-          console.log("[BINDING TRACE POST bill-image]", {
-            bucketCtor: bucket?.constructor?.name,
-            bucketProto: Object.getPrototypeOf(bucket)?.constructor?.name,
-            bucketKeys: bucket && typeof bucket === "object" ? Object.keys(bucket).slice(0, 20) : null,
-            hasList: typeof bucket?.list === "function",
-            hasGet: typeof bucket?.get === "function",
-            hasPut: typeof bucket?.put === "function",
-            hasDelete: typeof bucket?.delete === "function",
-            envKeys: env && typeof env === "object" ? Object.keys(env) : null
-          });
-
-          // [DEBUG POST /api/bill-image] log ผล R2 put
-          console.log("[DEBUG POST /api/bill-image] R2 put result", {
-            imageKey: imagePath,
-            imagePutOk: putImageResult !== null,
-            imagePutType: typeof putImageResult,
-            imagePutKeys: putImageResult && typeof putImageResult === "object" ? Object.keys(putImageResult) : null,
-            thumbKey: thumbPath,
-            thumbPutOk: putThumbResult !== null,
-            thumbPutType: typeof putThumbResult
-          });
-
-          // [VERIFY AFTER PUT] ดึงกลับมาทันทีเพื่อพิสูจน์ว่า object ถูกเขียนจริง
           const verifyImage = await bucket.get(imagePath);
-          console.log("[VERIFY AFTER PUT] image", {
-            imagePath,
-            exists: verifyImage !== null,
-            size: verifyImage?.size ?? null,
-            contentType: verifyImage?.httpMetadata?.contentType ?? null,
-            uploadCompleted_image: putImageResult?.uploadCompleted ?? null
-          });
 
+          const putThumbResult = await bucket.put(thumbPath, thumb.stream(), {
+            httpMetadata: { contentType: "image/webp" }
+          });
           const verifyThumb = await bucket.get(thumbPath);
-          console.log("[VERIFY AFTER PUT] thumb", {
-            thumbPath,
-            exists: verifyThumb !== null,
-            size: verifyThumb?.size ?? null,
-            contentType: verifyThumb?.httpMetadata?.contentType ?? null,
-            uploadCompleted_thumb: putThumbResult?.uploadCompleted ?? null
-          });
-
-          // [R2 LIST AFTER PUT] list ทั้งหมดใน prefix เพื่อพิสูจน์ว่า object ถูกเขียนจริง
-          const monthPrefix = imagePath.substring(0, imagePath.lastIndexOf("/"));
-          const listAfterPut = await bucket.list({ prefix: monthPrefix + "/" });
-          console.log("[R2 LIST AFTER PUT]", {
-            prefix: monthPrefix + "/",
-            count: listAfterPut.objects.length,
-            keys: listAfterPut.objects.map(o => o.key),
-            truncated: listAfterPut.truncated ?? null,
-            cursor: listAfterPut.cursor ? "present" : "absent",
-            targetImageInList: listAfterPut.objects.some(o => o.key === imagePath),
-            targetThumbInList: listAfterPut.objects.some(o => o.key === thumbPath)
-          });
 
           // Step 2: Update KV (if this fails, rollback R2)
           try {
@@ -949,16 +830,6 @@ export default {
             billData.updatedAt = new Date().toISOString();
 
             await env.HOUSE_RENT_KV.put(`utility_bill:${month}`, JSON.stringify(billData));
-
-            // [DEBUG POST /api/bill-image] อ่าน KV กลับมา verify
-            const verifyKV = await env.HOUSE_RENT_KV.get(`utility_bill:${month}`, { type: "json" });
-            console.log("[DEBUG POST /api/bill-image] KV verify", {
-              kvKey: `utility_bill:${month}`,
-              billImagePath: verifyKV?.billImage?.path || null,
-              billThumbPath: verifyKV?.billImage?.thumbPath || null,
-              uploadedPath_match: verifyKV?.billImage?.path === imagePath,
-              uploadedThumb_match: verifyKV?.billImage?.thumbPath === thumbPath
-            });
           } catch (kvError) {
             // Rollback: Delete uploaded files
             await bucket.delete(imagePath).catch(() => {});
@@ -967,46 +838,15 @@ export default {
           }
 
           // Step 3: Delete old images if replacing (hard delete old files)
-          if (existing?.billImage) {
-            // [DEBUG DELETE OLD] log keys ที่กำลังจะลบ vs keys ที่เพิ่ง upload
-            console.log("[DEBUG DELETE OLD] keys comparison", {
-              existingPath: existing.billImage.path,
-              existingThumbPath: existing.billImage.thumbPath,
-              uploadedImagePath: imagePath,
-              uploadedThumbPath: thumbPath,
-              deleteIsSameAsUpload_image: existing.billImage.path === imagePath,
-              deleteIsSameAsUpload_thumb: existing.billImage.thumbPath === thumbPath,
-              willDelete_existing: existing.billImage.path,
-              willDelete_existing_thumb: existing.billImage.thumbPath,
-              uploadedAt_existing: existing.billImage.uploadedAt ?? null,
-              existingRaw: JSON.stringify(existing.billImage)
-            });
+          // [BUGFIX] Skip delete ถ้า existing path ตรงกับ uploaded path
+          // เพราะ KV อาจส่งคืน record ที่เพิ่งเขียน (eventual consistency) ทำให้ลบไฟล์ที่เพิ่งอัปโหลดทิ้ง
+          const deleteImageIsSameAsUpload = existing?.billImage && existing.billImage.path === imagePath;
+          const deleteThumbIsSameAsUpload = existing?.billImage && existing.billImage.thumbPath === thumbPath;
+          const shouldSkipDelete = deleteImageIsSameAsUpload || deleteThumbIsSameAsUpload;
 
+          if (existing?.billImage && !shouldSkipDelete) {
             await bucket.delete(existing.billImage.path).catch(() => {});
             await bucket.delete(existing.billImage.thumbPath).catch(() => {});
-
-            // [DEBUG DELETE OLD RESULT] verify หลัง delete
-            const afterDeleteImage = await bucket.get(existing.billImage.path);
-            const afterDeleteThumb = await bucket.get(existing.billImage.thumbPath);
-            const afterDeleteList = await bucket.list({ prefix: monthPrefix + "/" });
-            console.log("[DEBUG DELETE OLD RESULT]", {
-              existingImage_exists_afterDelete: afterDeleteImage !== null,
-              existingThumb_exists_afterDelete: afterDeleteThumb !== null,
-              listCount_afterDelete: afterDeleteList.objects.length,
-              listKeys_afterDelete: afterDeleteList.objects.map(o => o.key),
-              uploadedImagePath,
-              uploadedThumbPath,
-              uploadedImageStillInList: afterDeleteList.objects.some(o => o.key === imagePath),
-              uploadedThumbStillInList: afterDeleteList.objects.some(o => o.key === thumbPath)
-            });
-          } else {
-            // [DEBUG DELETE OLD] no existing billImage → skip delete
-            console.log("[DEBUG DELETE OLD] no existing.billImage → skip", {
-              existingIsNull: existing == null,
-              existingKeys: existing ? Object.keys(existing) : null,
-              uploadedImagePath: imagePath,
-              uploadedThumbPath: thumbPath
-            });
           }
 
           return new Response(JSON.stringify({
@@ -1147,7 +987,13 @@ export default {
             throw kvError;
           }
 
-          if (existing?.meterImage) {
+          // [BUGFIX] Skip delete ถ้า existing path ตรงกับ uploaded path
+          // เพราะ KV อาจส่งคืน record ที่เพิ่งเขียน (eventual consistency) ทำให้ลบไฟล์ที่เพิ่งอัปโหลดทิ้ง
+          const deleteImageIsSameAsUpload = existing?.meterImage && existing.meterImage.path === imagePath;
+          const deleteThumbIsSameAsUpload = existing?.meterImage && existing.meterImage.thumbPath === thumbPath;
+          const shouldSkipDelete = deleteImageIsSameAsUpload || deleteThumbIsSameAsUpload;
+
+          if (existing?.meterImage && !shouldSkipDelete) {
             await bucket.delete(existing.meterImage.path).catch(() => {});
             await bucket.delete(existing.meterImage.thumbPath).catch(() => {});
           }
@@ -1229,66 +1075,14 @@ export default {
           // Extract path after /images/
           const objectKey = url.pathname.substring("/images/".length);
 
-          // [IMAGE GET REQUEST] log request ก่อน lookup
-          console.log("[IMAGE GET REQUEST]", {
-            pathname: url.pathname,
-            objectKey,
-            objectKeyLength: objectKey.length,
-            hasLeadingSlash: objectKey.startsWith("/"),
-            hasTrailingSlash: objectKey.endsWith("/"),
-            fullUrl: url.toString(),
-            method: request.method
-          });
-
           if (!objectKey || objectKey.includes("..")) {
             console.log("[IMAGE GET INVALID PATH]", { objectKey });
             return new Response("Invalid path", { status: 400 });
           }
 
-          // [IMAGE GET LOOKUP] log ก่อน R2 get
-          console.log("[IMAGE GET LOOKUP]", { objectKey });
-
-          // [BINDING TRACE GET /images] log R2 binding identity ฝั่ง GET เพื่อเทียบกับ POST
-          console.log("[BINDING TRACE GET /images]", {
-            bucketCtor: bucket?.constructor?.name,
-            bucketProto: Object.getPrototypeOf(bucket)?.constructor?.name,
-            bucketKeys: bucket && typeof bucket === "object" ? Object.keys(bucket).slice(0, 20) : null,
-            hasList: typeof bucket?.list === "function",
-            hasGet: typeof bucket?.get === "function",
-            hasPut: typeof bucket?.put === "function",
-            hasDelete: typeof bucket?.delete === "function",
-            envKeys: env && typeof env === "object" ? Object.keys(env) : null
-          });
-
-          // [R2 LIST BEFORE GET] list ก่อนเพื่อดูว่า R2 มี object อะไรอยู่บ้างตอน GET request
-          const getListPrefix = objectKey.substring(0, objectKey.lastIndexOf("/"));
-          const listBeforeGet = await bucket.list({ prefix: getListPrefix + "/" });
-          console.log("[R2 LIST BEFORE GET]", {
-            prefix: getListPrefix + "/",
-            objectKey_being_looked_up: objectKey,
-            count: listBeforeGet.objects.length,
-            keys: listBeforeGet.objects.map(o => o.key),
-            truncated: listBeforeGet.truncated ?? null,
-            targetInList: listBeforeGet.objects.some(o => o.key === objectKey)
-          });
-
           const object = await bucket.get(objectKey);
 
-          // [IMAGE GET RESULT] log ผลลัพธ์
-          console.log("[IMAGE GET RESULT]", {
-            objectKey,
-            found: object !== null,
-            size: object?.size ?? null,
-            contentType: object?.httpMetadata?.contentType ?? null,
-            uploaded: object?.uploaded ?? null
-          });
-
           if (!object) {
-            // [IMAGE GET NOT FOUND] log ก่อน return 404
-            console.log("[IMAGE GET NOT FOUND]", {
-              objectKey,
-              pathname: url.pathname
-            });
             return new Response("Image not found", { status: 404 });
           }
 

@@ -1245,13 +1245,10 @@
           <div id="billImageStats" class="image-stats d-none"></div>
           <div class="d-flex gap-2 mt-2 flex-wrap">
             <button class="btn btn-outline-primary touch-target" id="btnUploadBillImage" onclick="document.getElementById('billImageInput').click()">
-              📤 อัปโหลดรูป
+              📤 <span id="btnUploadBillImageLabel">อัปโหลดรูป</span>
             </button>
             <button class="btn btn-outline-danger touch-target d-none" id="btnDeleteBillImage" onclick="deleteBillImage()">
               🗑️ ลบรูป
-            </button>
-            <button class="btn btn-outline-secondary touch-target d-none" id="btnReplaceBillImage" onclick="document.getElementById('billImageInput').click()">
-              🔄 เปลี่ยนรูป
             </button>
           </div>
           <input type="file" class="d-none" id="billImageInput" accept="image/jpeg,image/png,image/heic,image/heif" onchange="handleBillImageUpload(event)">
@@ -1312,13 +1309,10 @@
           <div id="meterImageStats" class="image-stats d-none"></div>
           <div class="d-flex gap-2 mt-2 flex-wrap">
             <button class="btn btn-outline-primary touch-target" id="btnUploadMeterImage" onclick="document.getElementById('meterImageInput').click()">
-              📤 อัปโหลดรูป
+              📤 <span id="btnUploadMeterImageLabel">อัปโหลดรูป</span>
             </button>
             <button class="btn btn-outline-danger touch-target d-none" id="btnDeleteMeterImage" onclick="deleteMeterImage()">
               🗑️ ลบรูป
-            </button>
-            <button class="btn btn-outline-secondary touch-target d-none" id="btnReplaceMeterImage" onclick="document.getElementById('meterImageInput').click()">
-              🔄 เปลี่ยนรูป
             </button>
           </div>
           <input type="file" class="d-none" id="meterImageInput" accept="image/jpeg,image/png,image/heic,image/heif" onchange="handleMeterImageUpload(event)">
@@ -3276,12 +3270,22 @@ ${owner2Items}
       const processed = await processImage(file, feedback);
 
       // Show compression stats before upload
-      feedback.innerHTML = `
-        📊 <strong>ขนาดเดิม:</strong> ${formatFileSize(processed.originalSize)} →
-        <strong>หลังบีบอัด:</strong> ${formatFileSize(processed.optimizedSize)}
-        (ประหยัด ${processed.savedPercent}%)
-        <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
-      `;
+      if (processed.usedFallback) {
+        feedback.innerHTML = `
+          📊 <strong>ขนาดเดิม:</strong> ${formatFileSize(processed.originalSize)}<br>
+          <strong>หลังบีบอัด:</strong> ${formatFileSize(processed.optimizedSize)}
+          <span class="text-warning">(ใช้ไฟล์ต้นฉบับ เนื่องจากไฟล์หลังประมวลผลมีขนาดใหญ่กว่า)</span>
+          <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
+        `;
+      } else {
+        feedback.innerHTML = `
+          📊 <strong>Original:</strong> ${formatFileSize(processed.originalSize)}<br>
+          <strong>Optimized:</strong> ${formatFileSize(processed.optimizedSize)}<br>
+          <strong>Thumbnail:</strong> ${formatFileSize(processed.thumbSize)}<br>
+          <strong>Saved:</strong> ${processed.savedPercent}%
+          <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
+        `;
+      }
 
       const formData = new FormData();
       formData.append("image", processed.fullBlob, "image.webp");
@@ -3344,12 +3348,22 @@ ${owner2Items}
 
       const processed = await processImage(file, feedback);
 
-      feedback.innerHTML = `
-        📊 <strong>ขนาดเดิม:</strong> ${formatFileSize(processed.originalSize)} →
-        <strong>หลังบีบอัด:</strong> ${formatFileSize(processed.optimizedSize)}
-        (ประหยัด ${processed.savedPercent}%)
-        <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
-      `;
+      if (processed.usedFallback) {
+        feedback.innerHTML = `
+          📊 <strong>ขนาดเดิม:</strong> ${formatFileSize(processed.originalSize)}<br>
+          <strong>หลังบีบอัด:</strong> ${formatFileSize(processed.optimizedSize)}
+          <span class="text-warning">(ใช้ไฟล์ต้นฉบับ เนื่องจากไฟล์หลังประมวลผลมีขนาดใหญ่กว่า)</span>
+          <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
+        `;
+      } else {
+        feedback.innerHTML = `
+          📊 <strong>Original:</strong> ${formatFileSize(processed.originalSize)}<br>
+          <strong>Optimized:</strong> ${formatFileSize(processed.optimizedSize)}<br>
+          <strong>Thumbnail:</strong> ${formatFileSize(processed.thumbSize)}<br>
+          <strong>Saved:</strong> ${processed.savedPercent}%
+          <br><span class="spinner-border spinner-border-sm"></span> กำลังอัปโหลด...
+        `;
+      }
 
       const formData = new FormData();
       formData.append("image", processed.fullBlob, "image.webp");
@@ -3511,24 +3525,39 @@ ${owner2Items}
     let fullBlob = await canvasToBlob(fullCanvas, 0.8);
     const thumbBlob = await canvasToBlob(thumbCanvas, 0.8);
 
-    // Quality reduction loop (max 1MB, min quality 0.75)
+    // [Compression v2] Smart quality reduction:
+    // - Target: optimizedSize <= originalSize
+    // - Step down quality until size fits, OR fall back to original file
     let quality = 0.8;
-    while (fullBlob.size > 1024 * 1024 && quality > 0.75) {
-      quality -= 0.02;
+    const MIN_QUALITY = 0.5;
+    const QUALITY_STEP = 0.05;
+
+    while (fullBlob.size > originalSize && quality > MIN_QUALITY) {
+      quality = Math.max(MIN_QUALITY, quality - QUALITY_STEP);
       fullBlob = await canvasToBlob(fullCanvas, quality);
     }
 
+    let usedFallback = false;
+    if (fullBlob.size > originalSize) {
+      // Still larger than original even at minimum quality → use original file
+      usedFallback = true;
+      fullBlob = normalizedFile;
+    }
+
     const optimizedSize = fullBlob.size;
-    const savedPercent = originalSize > 0
-      ? ((originalSize - optimizedSize) / originalSize * 100).toFixed(1)
-      : 0;
+    const thumbnailSize = thumbBlob.size;
+    const savedPercent = usedFallback || originalSize <= 0
+      ? 0
+      : ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
 
     return {
       fullBlob,
       thumbBlob,
       originalSize,
       optimizedSize,
-      savedPercent
+      thumbSize: thumbnailSize,
+      savedPercent,
+      usedFallback
     };
   }
 
@@ -3550,7 +3579,7 @@ ${owner2Items}
     const currentEl = document.getElementById("billImagePreviewCurrent");
     const previousEl = document.getElementById("billImagePreviewPrevious");
     const btnDelete = document.getElementById("btnDeleteBillImage");
-    const btnReplace = document.getElementById("btnReplaceBillImage");
+    const btnUploadLabel = document.getElementById("btnUploadBillImageLabel");
 
     // Current month
     if (data?.current) {
@@ -3562,7 +3591,7 @@ ${owner2Items}
         <div class="image-preview-label text-success">✓ มีรูปแล้ว</div>
       `;
       btnDelete.classList.remove("d-none");
-      btnReplace.classList.remove("d-none");
+      if (btnUploadLabel) btnUploadLabel.textContent = "อัปโหลดใหม่";
     } else {
       currentEl.className = "image-preview-card is-empty";
       delete currentEl.dataset.fullImageUrl; // [Fix 2] clear
@@ -3575,7 +3604,7 @@ ${owner2Items}
         </div>
       `;
       btnDelete.classList.add("d-none");
-      btnReplace.classList.add("d-none");
+      if (btnUploadLabel) btnUploadLabel.textContent = "อัปโหลดรูป";
     }
 
     // Previous month
@@ -3618,7 +3647,7 @@ ${owner2Items}
     const currentEl = document.getElementById("meterImagePreviewCurrent");
     const previousEl = document.getElementById("meterImagePreviewPrevious");
     const btnDelete = document.getElementById("btnDeleteMeterImage");
-    const btnReplace = document.getElementById("btnReplaceMeterImage");
+    const btnUploadLabel = document.getElementById("btnUploadMeterImageLabel");
 
     if (data?.current) {
       currentEl.className = "image-preview-card has-image";
@@ -3629,7 +3658,7 @@ ${owner2Items}
         <div class="image-preview-label text-success">✓ มีรูปแล้ว</div>
       `;
       btnDelete.classList.remove("d-none");
-      btnReplace.classList.remove("d-none");
+      if (btnUploadLabel) btnUploadLabel.textContent = "อัปโหลดใหม่";
     } else {
       currentEl.className = "image-preview-card is-empty";
       delete currentEl.dataset.fullImageUrl;
@@ -3642,7 +3671,7 @@ ${owner2Items}
         </div>
       `;
       btnDelete.classList.add("d-none");
-      btnReplace.classList.add("d-none");
+      if (btnUploadLabel) btnUploadLabel.textContent = "อัปโหลดรูป";
     }
 
     if (data?.previous) {
