@@ -750,6 +750,7 @@ export default {
         const isBill = type === "bill";
         const pathKey = isBill ? "path" : "path";
         return {
+          month, // ใช้แสดงชื่อเดือนใน UI
           path: imageData.path,
           thumbPath: imageData.thumbPath,
           imageUrl: `/images/${imageData.path}`,
