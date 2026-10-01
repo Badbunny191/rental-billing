@@ -3292,12 +3292,16 @@ ${owner2Items}
       formData.append("thumb", processed.thumbBlob, "thumb.webp");
       formData.append("month", month);
       formData.append("originalSize", processed.originalSize);
+      // [Fix 2] ส่ง MIME type ของไฟล์จริง ไม่ใช่ hardcode webp
+      // เพื่อให้ server เก็บ content-type ที่ตรงกับไฟล์
+      formData.append("imageType", processed.fullBlob.type);
+      formData.append("thumbType", processed.thumbBlob.type);
 
       // [Fix C] Client-side validation: ตรวจก่อน upload เพื่อ fail fast
-      const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
       const MAX_THUMB_SIZE = 100 * 1024;
       if (processed.optimizedSize > MAX_IMAGE_SIZE) {
-        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 2MB กรุณาเลือกรูปอื่น`);
+        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 3MB กรุณาเลือกรูปอื่น`);
       }
       if (processed.thumbSize > MAX_THUMB_SIZE) {
         throw new Error(`Thumbnail มีขนาด ${formatFileSize(processed.thumbSize)} ใหญ่เกิน 100KB`);
@@ -3380,12 +3384,15 @@ ${owner2Items}
       formData.append("thumb", processed.thumbBlob, "thumb.webp");
       formData.append("month", month);
       formData.append("originalSize", processed.originalSize);
+      // [Fix 2] ส่ง MIME type ของไฟล์จริง
+      formData.append("imageType", processed.fullBlob.type);
+      formData.append("thumbType", processed.thumbBlob.type);
 
       // [Fix C] Client-side validation: ตรวจก่อน upload เพื่อ fail fast
-      const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
       const MAX_THUMB_SIZE = 100 * 1024;
       if (processed.optimizedSize > MAX_IMAGE_SIZE) {
-        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 2MB กรุณาเลือกรูปอื่น`);
+        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 3MB กรุณาเลือกรูปอื่น`);
       }
       if (processed.thumbSize > MAX_THUMB_SIZE) {
         throw new Error(`Thumbnail มีขนาด ${formatFileSize(processed.thumbSize)} ใหญ่เกิน 100KB`);
@@ -3515,8 +3522,13 @@ ${owner2Items}
 
   // Main image processing pipeline
   async function processImage(file, feedbackEl) {
+    // [Fix 1] Client-side limits (ต้องตรงกับ server)
+    const MAX_IMAGE_SIZE = 3 * 1024 * 1024;  // 2MB
+    const MAX_THUMB_SIZE = 100 * 1024;       // 100KB
+    const MAX_ORIGINAL_SIZE = 15 * 1024 * 1024; // 15MB (ป้องกัน OOM)
+
     // Validate file size (reject > 15MB to prevent OOM)
-    if (file.size > 15 * 1024 * 1024) {
+    if (file.size > MAX_ORIGINAL_SIZE) {
       throw new Error("ไฟล์ใหญ่เกินไป (สูงสุด 15MB) กรุณาเลือกรูปอื่น");
     }
 
@@ -3528,9 +3540,6 @@ ${owner2Items}
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังแปลง HEIC...';
     const normalizedFile = await convertHeicIfNeeded(file);
-    // [Fix A] ใช้ normalizedFile.size เป็น baseline (สิ่งที่เรากำลังจะ encode)
-    // เพราะ fallback จะใช้ file (original) ไม่ใช่ normalizedFile
-    const originalSize = normalizedFile.size;
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังโหลดรูปภาพ...';
     const img = await loadImageFromFile(normalizedFile);
@@ -3544,72 +3553,71 @@ ${owner2Items}
     const thumbCanvas = drawToCanvas(img, thumbSize.width, thumbSize.height);
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบีบอัดรูป...';
-    let fullBlob = await canvasToBlob(fullCanvas, 0.8);
-    const thumbBlob = await canvasToBlob(thumbCanvas, 0.8);
 
-    // [DEBUG_TEMP] Log compression diagnostics
-    console.log("[IMAGE_COMPRESS_DEBUG]", {
-      fileSize: file.size,
-      fileType: file.type,
-      fileName: file.name,
-      normalizedSize: normalizedFile.size,
-      normalizedType: normalizedFile.type,
-      originalWidth: img.naturalWidth,
-      originalHeight: img.naturalHeight,
-      targetWidth: fullSize.width,
-      targetHeight: fullSize.height,
-      initialWebPSize: fullBlob.size,
-      initialWebPType: fullBlob.type,
-      initialQuality: 0.8,
-      thumbSize: thumbBlob.size,
-      thumbType: thumbBlob.type,
-      originalSizeUsed: originalSize,
-      note: "originalSize = normalizedFile.size (สิ่งที่เรากำลัง encode)"
-    });
+    // [Compression v4] Smart Compression Strategy
+    // Priority:
+    // 1. optimizedSize <= MAX_IMAGE_SIZE (2MB) - hard requirement
+    // 2. optimizedSize <= originalSize × 2 (sanity check)
+    // 3. Fallback to original file ONLY if all compression attempts fail
 
-    // [Compression v3] Smart quality reduction:
-    // - Target: optimizedSize <= originalSize
-    // - Step down quality until size fits, OR fall back to original file (not normalizedFile)
     let quality = 0.8;
     const MIN_QUALITY = 0.5;
     const QUALITY_STEP = 0.05;
 
-    while (fullBlob.size > originalSize && quality > MIN_QUALITY) {
+    // Initial WebP encode
+    let fullBlob = await canvasToBlob(fullCanvas, quality);
+    const thumbBlob = await canvasToBlob(thumbCanvas, 0.8);
+
+    // Step 1: Reduce quality until <= MAX_IMAGE_SIZE
+    while (fullBlob.size > MAX_IMAGE_SIZE && quality > MIN_QUALITY) {
       quality = Math.max(MIN_QUALITY, quality - QUALITY_STEP);
       fullBlob = await canvasToBlob(fullCanvas, quality);
     }
 
+    // Step 2: Determine fallback strategy
     let usedFallback = false;
-    if (fullBlob.size > originalSize) {
-      // [Fix B] Fallback ใช้ original file (สิ่งที่ user เลือก) ไม่ใช่ normalizedFile
-      // เพราะ normalizedFile อาจใหญ่กว่า file เดิม (เช่น HEIC → JPEG)
-      usedFallback = true;
-      fullBlob = file;
+    let fallbackReason = null;
+
+    if (fullBlob.size > MAX_IMAGE_SIZE) {
+      // Compression failed → try original file
+      if (file.size <= MAX_IMAGE_SIZE) {
+        // Original fits in limit → use it
+        usedFallback = true;
+        fallbackReason = "compression_failed_but_original_fits";
+        fullBlob = file;
+      } else {
+        // Original too large → reject
+        throw new Error(
+          `ไฟล์มีขนาด ${formatFileSize(file.size)} ใหญ่เกิน 3MB และไม่สามารถบีบอัดได้\n` +
+          `กรุณา resize รูปด้วยแอปอื่นก่อนอัปโหลด`
+        );
+      }
+    } else if (fullBlob.size > file.size * 2) {
+      // WebP bigger than 2x original (unusual, e.g., small PNG with alpha)
+      // → use original file if it fits
+      if (file.size <= MAX_IMAGE_SIZE) {
+        usedFallback = true;
+        fallbackReason = "webp_bigger_than_original";
+        fullBlob = file;
+      }
+      // else: keep WebP (better quality)
     }
 
     const optimizedSize = fullBlob.size;
     const thumbnailSize = thumbBlob.size;
+
+    // Validate thumbnail
+    if (thumbnailSize > MAX_THUMB_SIZE) {
+      throw new Error(
+        `Thumbnail มีขนาด ${formatFileSize(thumbnailSize)} ใหญ่เกิน 100KB\n` +
+        `กรุณาเลือกรูปที่มีขนาดเล็กกว่า`
+      );
+    }
+
+    const originalSize = file.size;
     const savedPercent = usedFallback || originalSize <= 0
       ? 0
       : ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
-
-    // [DEBUG_TEMP] Final compression result
-    console.log("[IMAGE_COMPRESS_RESULT]", {
-      fileSize: file.size,
-      normalizedSize: normalizedFile.size,
-      optimizedSize,
-      thumbSize: thumbnailSize,
-      quality,
-      usedFallback,
-      originalWidth: img.naturalWidth,
-      originalHeight: img.naturalHeight,
-      targetWidth: fullSize.width,
-      targetHeight: fullSize.height,
-      finalBlobType: fullBlob.type,
-      finalBlobSize: fullBlob.size,
-      savedPercent,
-      willPassServerValidation: optimizedSize <= 2 * 1024 * 1024 && thumbnailSize <= 100 * 1024
-    });
 
     return {
       fullBlob,
@@ -3618,7 +3626,8 @@ ${owner2Items}
       optimizedSize,
       thumbSize: thumbnailSize,
       savedPercent,
-      usedFallback
+      usedFallback,
+      fallbackReason
     };
   }
 

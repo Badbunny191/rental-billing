@@ -761,8 +761,8 @@ export default {
 
       // ===== BILL IMAGE ROUTES =====
 
-      // [Fix 4] Max sizes: full=2MB, thumb=100KB (client already resizes ลงประมาณ 500KB/50KB)
-      const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+      // [Fix 4] Max sizes: full=3MB, thumb=100KB (client already resizes ลงประมาณ 500KB/50KB)
+      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
       const MAX_THUMB_SIZE = 100 * 1024;
 
       if (url.pathname === "/api/bill-image" && method === "POST") {
@@ -773,6 +773,11 @@ export default {
           const thumb = formData.get("thumb");
           const month = String(formData.get("month") || "");
           const originalSize = parseInt(formData.get("originalSize") || "0", 10);
+          // [Fix MIME] รับ MIME type จาก client (อาจเป็น webp/png/jpeg หลัง fallback)
+          const clientImageType = String(formData.get("imageType") || "image/webp");
+          const clientThumbType = String(formData.get("thumbType") || "image/webp");
+          const imageContentType = clientImageType.startsWith("image/") ? clientImageType : "image/webp";
+          const thumbContentType = clientThumbType.startsWith("image/") ? clientThumbType : "image/webp";
 
           if (!isValidMonthFormat(month)) {
             return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
@@ -791,7 +796,7 @@ export default {
           // [Fix 4] Defense-in-depth: validate file sizes (เผื่อ client ไม่ resize)
           if (image.size > MAX_IMAGE_SIZE || thumb.size > MAX_THUMB_SIZE) {
             return new Response(JSON.stringify({
-              error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 2MB, thumb ≤ 100KB)"
+              error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 3MB, thumb ≤ 100KB)"
             }), {
               status: 400,
               headers: JSON_HEADERS
@@ -809,12 +814,12 @@ export default {
 
           // Step 1: Upload new images to R2 — กลับไปใช้ .stream() ชั่วคราวเพื่อพิสูจน์ปัญหา
           const putImageResult = await bucket.put(imagePath, image.stream(), {
-            httpMetadata: { contentType: "image/webp" }
+            httpMetadata: { contentType: imageContentType }
           });
           const verifyImage = await bucket.get(imagePath);
 
           const putThumbResult = await bucket.put(thumbPath, thumb.stream(), {
-            httpMetadata: { contentType: "image/webp" }
+            httpMetadata: { contentType: thumbContentType }
           });
           const verifyThumb = await bucket.get(thumbPath);
 
@@ -931,6 +936,11 @@ export default {
           const thumb = formData.get("thumb");
           const month = String(formData.get("month") || "");
           const originalSize = parseInt(formData.get("originalSize") || "0", 10);
+          // [Fix MIME] รับ MIME type จาก client (อาจเป็น webp/png/jpeg หลัง fallback)
+          const clientImageType = String(formData.get("imageType") || "image/webp");
+          const clientThumbType = String(formData.get("thumbType") || "image/webp");
+          const imageContentType = clientImageType.startsWith("image/") ? clientImageType : "image/webp";
+          const thumbContentType = clientThumbType.startsWith("image/") ? clientThumbType : "image/webp";
 
           if (!isValidMonthFormat(month)) {
             return new Response(JSON.stringify({ error: "รูปแบบเดือนไม่ถูกต้อง" }), {
@@ -949,7 +959,7 @@ export default {
           // [Fix 4] Defense-in-depth: validate file sizes
           if (image.size > MAX_IMAGE_SIZE || thumb.size > MAX_THUMB_SIZE) {
             return new Response(JSON.stringify({
-              error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 2MB, thumb ≤ 100KB)"
+              error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 3MB, thumb ≤ 100KB)"
             }), {
               status: 400,
               headers: JSON_HEADERS
@@ -964,10 +974,10 @@ export default {
           const thumbPath = buildImagePath("meter", month, thumbFilename);
 
           await bucket.put(imagePath, image.stream(), {
-            httpMetadata: { contentType: "image/webp" }
+            httpMetadata: { contentType: imageContentType }
           });
           await bucket.put(thumbPath, thumb.stream(), {
-            httpMetadata: { contentType: "image/webp" }
+            httpMetadata: { contentType: thumbContentType }
           });
 
           try {
