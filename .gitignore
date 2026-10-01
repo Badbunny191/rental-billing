@@ -6,4 +6,4 @@ node_modules/
 .DS_Store
 import-history.js
 history-kv-bulk.json
-clear-kv.js
+clear-kv.jsbills/
