@@ -1225,7 +1225,7 @@
           <div class="row g-2">
             <div class="col-6">
               <div class="image-preview-wrapper">
-                <div id="billImagePreviewCurrent" class="image-preview-card is-empty" onclick="handleBillImageClick()">
+                <div id="billImagePreviewCurrent" class="image-preview-card is-empty" onclick="handleBillImageClick('billImagePreviewCurrent')">
                   <div class="text-center">
                     <div style="font-size: 2rem;">📷</div>
                     <div class="small">รูปเดือนปัจจุบัน</div>
@@ -1234,7 +1234,7 @@
               </div>
             </div>
             <div class="col-6">
-              <div id="billImagePreviewPrevious" class="image-preview-card is-empty">
+              <div id="billImagePreviewPrevious" class="image-preview-card is-empty" onclick="handleBillImageClick('billImagePreviewPrevious')">
                 <div class="text-center">
                   <div style="font-size: 2rem;">📁</div>
                   <div class="small">รูปเดือนก่อน<br><span class="text-muted">(Read Only)</span></div>
@@ -1289,7 +1289,7 @@
           <div class="row g-2">
             <div class="col-6">
               <div class="image-preview-wrapper">
-                <div id="meterImagePreviewCurrent" class="image-preview-card is-empty" onclick="handleMeterImageClick()">
+                <div id="meterImagePreviewCurrent" class="image-preview-card is-empty" onclick="handleMeterImageClick('meterImagePreviewCurrent')">
                   <div class="text-center">
                     <div style="font-size: 2rem;">📷</div>
                     <div class="small">รูปเดือนปัจจุบัน</div>
@@ -1298,7 +1298,7 @@
               </div>
             </div>
             <div class="col-6">
-              <div id="meterImagePreviewPrevious" class="image-preview-card is-empty">
+              <div id="meterImagePreviewPrevious" class="image-preview-card is-empty" onclick="handleMeterImageClick('meterImagePreviewPrevious')">
                 <div class="text-center">
                   <div style="font-size: 2rem;">📁</div>
                   <div class="small">รูปเดือนก่อน<br><span class="text-muted">(Read Only)</span></div>
@@ -3293,6 +3293,16 @@ ${owner2Items}
       formData.append("month", month);
       formData.append("originalSize", processed.originalSize);
 
+      // [Fix C] Client-side validation: ตรวจก่อน upload เพื่อ fail fast
+      const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+      const MAX_THUMB_SIZE = 100 * 1024;
+      if (processed.optimizedSize > MAX_IMAGE_SIZE) {
+        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 2MB กรุณาเลือกรูปอื่น`);
+      }
+      if (processed.thumbSize > MAX_THUMB_SIZE) {
+        throw new Error(`Thumbnail มีขนาด ${formatFileSize(processed.thumbSize)} ใหญ่เกิน 100KB`);
+      }
+
       const res = await fetch("/api/bill-image", {
         method: "POST",
         body: formData
@@ -3370,6 +3380,16 @@ ${owner2Items}
       formData.append("thumb", processed.thumbBlob, "thumb.webp");
       formData.append("month", month);
       formData.append("originalSize", processed.originalSize);
+
+      // [Fix C] Client-side validation: ตรวจก่อน upload เพื่อ fail fast
+      const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+      const MAX_THUMB_SIZE = 100 * 1024;
+      if (processed.optimizedSize > MAX_IMAGE_SIZE) {
+        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 2MB กรุณาเลือกรูปอื่น`);
+      }
+      if (processed.thumbSize > MAX_THUMB_SIZE) {
+        throw new Error(`Thumbnail มีขนาด ${formatFileSize(processed.thumbSize)} ใหญ่เกิน 100KB`);
+      }
 
       const res = await fetch("/api/meter-image", {
         method: "POST",
@@ -3508,7 +3528,9 @@ ${owner2Items}
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังแปลง HEIC...';
     const normalizedFile = await convertHeicIfNeeded(file);
-    const originalSize = file.size;
+    // [Fix A] ใช้ normalizedFile.size เป็น baseline (สิ่งที่เรากำลังจะ encode)
+    // เพราะ fallback จะใช้ file (original) ไม่ใช่ normalizedFile
+    const originalSize = normalizedFile.size;
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังโหลดรูปภาพ...';
     const img = await loadImageFromFile(normalizedFile);
@@ -3525,9 +3547,29 @@ ${owner2Items}
     let fullBlob = await canvasToBlob(fullCanvas, 0.8);
     const thumbBlob = await canvasToBlob(thumbCanvas, 0.8);
 
-    // [Compression v2] Smart quality reduction:
+    // [DEBUG_TEMP] Log compression diagnostics
+    console.log("[IMAGE_COMPRESS_DEBUG]", {
+      fileSize: file.size,
+      fileType: file.type,
+      fileName: file.name,
+      normalizedSize: normalizedFile.size,
+      normalizedType: normalizedFile.type,
+      originalWidth: img.naturalWidth,
+      originalHeight: img.naturalHeight,
+      targetWidth: fullSize.width,
+      targetHeight: fullSize.height,
+      initialWebPSize: fullBlob.size,
+      initialWebPType: fullBlob.type,
+      initialQuality: 0.8,
+      thumbSize: thumbBlob.size,
+      thumbType: thumbBlob.type,
+      originalSizeUsed: originalSize,
+      note: "originalSize = normalizedFile.size (สิ่งที่เรากำลัง encode)"
+    });
+
+    // [Compression v3] Smart quality reduction:
     // - Target: optimizedSize <= originalSize
-    // - Step down quality until size fits, OR fall back to original file
+    // - Step down quality until size fits, OR fall back to original file (not normalizedFile)
     let quality = 0.8;
     const MIN_QUALITY = 0.5;
     const QUALITY_STEP = 0.05;
@@ -3539,9 +3581,10 @@ ${owner2Items}
 
     let usedFallback = false;
     if (fullBlob.size > originalSize) {
-      // Still larger than original even at minimum quality → use original file
+      // [Fix B] Fallback ใช้ original file (สิ่งที่ user เลือก) ไม่ใช่ normalizedFile
+      // เพราะ normalizedFile อาจใหญ่กว่า file เดิม (เช่น HEIC → JPEG)
       usedFallback = true;
-      fullBlob = normalizedFile;
+      fullBlob = file;
     }
 
     const optimizedSize = fullBlob.size;
@@ -3549,6 +3592,24 @@ ${owner2Items}
     const savedPercent = usedFallback || originalSize <= 0
       ? 0
       : ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
+
+    // [DEBUG_TEMP] Final compression result
+    console.log("[IMAGE_COMPRESS_RESULT]", {
+      fileSize: file.size,
+      normalizedSize: normalizedFile.size,
+      optimizedSize,
+      thumbSize: thumbnailSize,
+      quality,
+      usedFallback,
+      originalWidth: img.naturalWidth,
+      originalHeight: img.naturalHeight,
+      targetWidth: fullSize.width,
+      targetHeight: fullSize.height,
+      finalBlobType: fullBlob.type,
+      finalBlobSize: fullBlob.size,
+      savedPercent,
+      willPassServerValidation: optimizedSize <= 2 * 1024 * 1024 && thumbnailSize <= 100 * 1024
+    });
 
     return {
       fullBlob,
@@ -3697,18 +3758,19 @@ ${owner2Items}
   }
 
   // Click to view full image
-  function handleBillImageClick() {
-    // [Fix 2] ใช้ imageUrl ที่เก็บไว้ใน dataset แทน string replace
-    const currentEl = document.getElementById("billImagePreviewCurrent");
-    const fullUrl = currentEl?.dataset?.fullImageUrl;
-    if (fullUrl) showImageModal(fullUrl, "รูปบิลไฟฟ้า");
+  // [Fix D] รับ elementId เป็น parameter เพื่อรองรับทั้ง current และ previous
+  function handleBillImageClick(elementId) {
+    const el = document.getElementById(elementId);
+    const fullUrl = el?.dataset?.fullImageUrl;
+    const title = elementId.includes("Previous") ? "รูปบิลไฟฟ้า (เดือนก่อน)" : "รูปบิลไฟฟ้า";
+    if (fullUrl) showImageModal(fullUrl, title);
   }
 
-  function handleMeterImageClick() {
-    // [Fix 2] ใช้ imageUrl ที่เก็บไว้ใน dataset แทน string replace
-    const currentEl = document.getElementById("meterImagePreviewCurrent");
-    const fullUrl = currentEl?.dataset?.fullImageUrl;
-    if (fullUrl) showImageModal(fullUrl, "รูปมิเตอร์ไฟฟ้า");
+  function handleMeterImageClick(elementId) {
+    const el = document.getElementById(elementId);
+    const fullUrl = el?.dataset?.fullImageUrl;
+    const title = elementId.includes("Previous") ? "รูปมิเตอร์ไฟฟ้า (เดือนก่อน)" : "รูปมิเตอร์ไฟฟ้า";
+    if (fullUrl) showImageModal(fullUrl, title);
   }
 
   function showImageModal(src, title) {
