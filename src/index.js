@@ -40,7 +40,8 @@ export default {
 
     // Static Assets Handler: ส่งต่อ Request ที่ไม่ใช่ API และไม่ใช่ /images/* ไปยัง Public Assets
     // หมายเหตุ: /images/* ต้องวิ่งผ่าน Worker route เพื่ออ่านจาก R2 (env.IMAGE_BUCKET)
-    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/images/")) {
+    // /test-meter-ocr เป็น benchmark endpoint ที่ต้องวิ่งผ่าน Worker
+    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/images/") && url.pathname !== "/test-meter-ocr") {
       if (env.ASSETS) {
         return await env.ASSETS.fetch(request);
       }
@@ -176,6 +177,96 @@ export default {
             "Set-Cookie": clearCookie
           }
         });
+      }
+
+      // -------------------------------------------------------------
+      // 1B. CLOUDFLARE WORKERS AI VISION — METER READING (BENCHMARK)
+      // -------------------------------------------------------------
+      // POST /test-meter-ocr
+      // No auth required — used for benchmarking and testing.
+      // Body: { image: <base64> }
+      // Returns: { reading: "17855", raw: "..." }
+      if (url.pathname === "/test-meter-ocr" && method === "POST") {
+        try {
+          const body = await request.json();
+          let imageStr = String(body.image || "");
+          if (!imageStr) {
+            return new Response(JSON.stringify({ error: "missing 'image' field" }), {
+              status: 400,
+              headers: JSON_HEADERS
+            });
+          }
+          // Strip data URL prefix if present
+          if (imageStr.startsWith("data:")) {
+            imageStr = imageStr.split(",")[1] || "";
+          }
+
+          if (!env.AI) {
+            return new Response(JSON.stringify({ error: "AI binding not configured" }), {
+              status: 500,
+              headers: JSON_HEADERS
+            });
+          }
+
+          const prompt = `Read the electricity meter value from this image.
+
+Rules:
+- Ignore all surrounding text on the meter (HGE, KILOWATT-HOUR METER, TYPE DD28, MANUFACTURED BY HGE, specifications, etc.)
+- Ignore model numbers, voltage ratings, and any non-counter text
+- Read only the mechanical counter display (5 white-on-black or black-on-white digit rollers)
+- Return ONLY the 5-digit reading as plain digits, no spaces, no commas
+- If you cannot read the counter clearly, return "00000"
+
+Examples of valid output:
+17855
+18308
+18855
+19712
+
+Return JSON only in this exact format, no other text:
+{"reading":"17855"}`;
+
+          const aiResponse = await env.AI.run("@cf/llava-1.5-7b-hf", {
+            image: imageStr,
+            prompt,
+            max_tokens: 64,
+          });
+
+          // Parse response — llava returns { description: "..." } or string
+          let raw = "";
+          if (typeof aiResponse === "string") {
+            raw = aiResponse;
+          } else if (aiResponse?.response) {
+            raw = String(aiResponse.response);
+          } else if (aiResponse?.description) {
+            raw = String(aiResponse.description);
+          } else {
+            raw = JSON.stringify(aiResponse);
+          }
+
+          // Try to extract JSON
+          let reading = "";
+          const jsonMatch = raw.match(/\{[^}]*"reading"\s*:\s*"([^"]*)"[^}]*\}/);
+          if (jsonMatch) {
+            reading = jsonMatch[1];
+          } else {
+            // Fallback: extract first 5-digit number from text
+            const numMatch = raw.match(/\b\d{5}\b/);
+            if (numMatch) reading = numMatch[0];
+          }
+
+          // Sanitize: keep only digits, max 5
+          reading = (reading || "").replace(/[^0-9]/g, "").slice(0, 5);
+
+          return new Response(JSON.stringify({ reading, raw }), {
+            headers: JSON_HEADERS
+          });
+        } catch (err) {
+          console.error("test-meter-ocr error:", err);
+          return new Response(JSON.stringify({
+            error: "AI processing failed: " + (err.message || "unknown"),
+          }), { status: 500, headers: JSON_HEADERS });
+        }
       }
 
       // -------------------------------------------------------------

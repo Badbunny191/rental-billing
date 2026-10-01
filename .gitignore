@@ -7,3 +7,5 @@ node_modules/
 import-history.js
 history-kv-bulk.json
 clear-kv.jsbills/
+bills/
+test-images/
