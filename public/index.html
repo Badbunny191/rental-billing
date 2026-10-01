@@ -3538,20 +3538,28 @@ ${owner2Items}
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังปรับขนาดรูป...';
 
     // [Compression v5] Dual-stage adaptive loop:
-    // Stage 1: Reduce quality (in-place on same canvas)
-    // Stage 2: If still too big → reduce dimension (rebuild canvas)
-    // Loop until size fits target, or exhaust all attempts
+    // Stage 1: Try all (dim, quality) combinations
+    // Stage 2: Pick the BEST result:
+    //   - If any candidate ≤ MAX_IMAGE_SIZE AND ≤ original → use it (compression wins)
+    //   - Else if any candidate ≤ MAX_IMAGE_SIZE → use smallest candidate (fallback)
+    //   - Else → error
+    // Key fix: never accept blob > original unless ALL options exceed original
 
     const FULL_DIMENSIONS = [1600, 1200, 900, 700, 500];
     const FULL_QUALITIES = [0.8, 0.7, 0.6, 0.5];
     const THUMB_DIMENSIONS = [300, 250, 200, 150];
     const THUMB_QUALITIES = [0.8, 0.6, 0.4, 0.3];
+    const originalSize = file.size;
 
-    // === FULL IMAGE: adaptive dimension + quality ===
+    // === FULL IMAGE: collect all candidates, pick best ===
     let fullBlob = null;
     let fullDim = null;
     let fullQuality = null;
     let fullAttempts = 0;
+    let bestCandidate = null;       // best blob that fits MAX_IMAGE_SIZE
+    let bestCandidateDim = null;
+    let bestCandidateQ = null;
+    let bestCandidateSize = Infinity;
 
     for (const dim of FULL_DIMENSIONS) {
       const fullSize = resizeImage(img, dim);
@@ -3559,14 +3567,33 @@ ${owner2Items}
       for (const q of FULL_QUALITIES) {
         fullAttempts++;
         const blob = await canvasToBlob(fullCanvas, q);
+
         if (blob.size <= MAX_IMAGE_SIZE) {
-          fullBlob = blob;
-          fullDim = dim;
-          fullQuality = q;
-          break;
+          // Track all passing candidates
+          if (blob.size < bestCandidateSize) {
+            bestCandidateSize = blob.size;
+            bestCandidate = blob;
+            bestCandidateDim = dim;
+            bestCandidateQ = q;
+          }
+
+          // If compression helps (blob ≤ original) → accept immediately
+          if (blob.size <= originalSize) {
+            fullBlob = blob;
+            fullDim = dim;
+            fullQuality = q;
+            break;
+          }
         }
       }
       if (fullBlob) break;
+    }
+
+    // If no compression beat original → use best candidate (fallback)
+    if (!fullBlob && bestCandidate) {
+      fullBlob = bestCandidate;
+      fullDim = bestCandidateDim;
+      fullQuality = bestCandidateQ;
     }
 
     if (!fullBlob) {
@@ -3575,6 +3602,13 @@ ${owner2Items}
         `กรุณา resize รูปด้วยแอปอื่นก่อนอัปโหลด`
       );
     }
+
+    const optimizedSize = fullBlob.size;
+    const usedFallback = optimizedSize > originalSize;
+    const fallbackReason = usedFallback ? "webp_larger_than_original" : null;
+    const savedPercent = originalSize <= 0 || usedFallback
+      ? 0
+      : ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังสร้าง thumbnail...';
 
@@ -3606,14 +3640,7 @@ ${owner2Items}
       );
     }
 
-    const originalSize = file.size;
-    const optimizedSize = fullBlob.size;
     const thumbnailSize = thumbBlob.size;
-    const usedFallback = false;
-    const fallbackReason = null;
-    const savedPercent = originalSize <= 0
-      ? 0
-      : ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
 
     return {
       fullBlob,
