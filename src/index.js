@@ -759,11 +759,19 @@ export default {
         };
       }
 
-      // ===== BILL IMAGE ROUTES =====
+      // ===== IMAGE LIMITS (Source of Truth) =====
+      // [Fix 6] Single source of truth for all image size limits
+      const IMAGE_LIMITS = Object.freeze({
+        MAX_ORIGINAL_SIZE: 15 * 1024 * 1024,   // 15MB — OOM protection
+        MAX_IMAGE_SIZE: 3 * 1024 * 1024,       // 3MB — hard limit
+        MAX_THUMB_SIZE: 100 * 1024,             // 100KB — hard limit
+        FULL_TOLERANCE: 50 * 1024,             // +50KB grace (absorb tiny drift)
+        THUMB_TOLERANCE: 10 * 1024,            // +10KB grace (absorb tiny drift)
+      });
+      const MAX_FULL_ACCEPT = IMAGE_LIMITS.MAX_IMAGE_SIZE + IMAGE_LIMITS.FULL_TOLERANCE;   // 3.05MB
+      const MAX_THUMB_ACCEPT = IMAGE_LIMITS.MAX_THUMB_SIZE + IMAGE_LIMITS.THUMB_TOLERANCE; // 110KB
 
-      // [Fix 4] Max sizes: full=3MB, thumb=100KB (client already resizes ลงประมาณ 500KB/50KB)
-      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
-      const MAX_THUMB_SIZE = 100 * 1024;
+      // ===== BILL IMAGE ROUTES =====
 
       if (url.pathname === "/api/bill-image" && method === "POST") {
         try {
@@ -793,8 +801,8 @@ export default {
             });
           }
 
-          // [Fix 4] Defense-in-depth: validate file sizes (เผื่อ client ไม่ resize)
-          if (image.size > MAX_IMAGE_SIZE || thumb.size > MAX_THUMB_SIZE) {
+          // [Fix 6] Defense-in-depth: validate with tolerance (absorb client→server size drift)
+          if (image.size > MAX_FULL_ACCEPT || thumb.size > MAX_THUMB_ACCEPT) {
             return new Response(JSON.stringify({
               error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 3MB, thumb ≤ 100KB)"
             }), {
@@ -812,16 +820,13 @@ export default {
           const imagePath = buildImagePath("bill", month, imageFilename);
           const thumbPath = buildImagePath("bill", month, thumbFilename);
 
-          // Step 1: Upload new images to R2 — กลับไปใช้ .stream() ชั่วคราวเพื่อพิสูจน์ปัญหา
-          const putImageResult = await bucket.put(imagePath, image.stream(), {
+          // Step 1: Upload to R2 (R2 put() is strongly consistent — no verify needed)
+          await bucket.put(imagePath, image.stream(), {
             httpMetadata: { contentType: imageContentType }
           });
-          const verifyImage = await bucket.get(imagePath);
-
-          const putThumbResult = await bucket.put(thumbPath, thumb.stream(), {
+          await bucket.put(thumbPath, thumb.stream(), {
             httpMetadata: { contentType: thumbContentType }
           });
-          const verifyThumb = await bucket.get(thumbPath);
 
           // Step 2: Update KV (if this fails, rollback R2)
           try {
@@ -956,8 +961,8 @@ export default {
             });
           }
 
-          // [Fix 4] Defense-in-depth: validate file sizes
-          if (image.size > MAX_IMAGE_SIZE || thumb.size > MAX_THUMB_SIZE) {
+          // [Fix 6] Defense-in-depth: validate with tolerance
+          if (image.size > MAX_FULL_ACCEPT || thumb.size > MAX_THUMB_ACCEPT) {
             return new Response(JSON.stringify({
               error: "ไฟล์รูปภาพมีขนาดใหญ่เกินไป (full ≤ 3MB, thumb ≤ 100KB)"
             }), {

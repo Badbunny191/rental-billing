@@ -3297,16 +3297,6 @@ ${owner2Items}
       formData.append("imageType", processed.fullBlob.type);
       formData.append("thumbType", processed.thumbBlob.type);
 
-      // [Fix C] Client-side validation: ตรวจก่อน upload เพื่อ fail fast
-      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
-      const MAX_THUMB_SIZE = 100 * 1024;
-      if (processed.optimizedSize > MAX_IMAGE_SIZE) {
-        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 3MB กรุณาเลือกรูปอื่น`);
-      }
-      if (processed.thumbSize > MAX_THUMB_SIZE) {
-        throw new Error(`Thumbnail มีขนาด ${formatFileSize(processed.thumbSize)} ใหญ่เกิน 100KB`);
-      }
-
       const res = await fetch("/api/bill-image", {
         method: "POST",
         body: formData
@@ -3387,16 +3377,6 @@ ${owner2Items}
       // [Fix 2] ส่ง MIME type ของไฟล์จริง
       formData.append("imageType", processed.fullBlob.type);
       formData.append("thumbType", processed.thumbBlob.type);
-
-      // [Fix C] Client-side validation: ตรวจก่อน upload เพื่อ fail fast
-      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
-      const MAX_THUMB_SIZE = 100 * 1024;
-      if (processed.optimizedSize > MAX_IMAGE_SIZE) {
-        throw new Error(`ไฟล์หลังบีบอัดมีขนาด ${formatFileSize(processed.optimizedSize)} ใหญ่เกิน 3MB กรุณาเลือกรูปอื่น`);
-      }
-      if (processed.thumbSize > MAX_THUMB_SIZE) {
-        throw new Error(`Thumbnail มีขนาด ${formatFileSize(processed.thumbSize)} ใหญ่เกิน 100KB`);
-      }
 
       const res = await fetch("/api/meter-image", {
         method: "POST",
@@ -3520,12 +3500,23 @@ ${owner2Items}
     });
   }
 
+  // [Fix 6] Image Limits — Single Source of Truth
+  // Shared by processImage(), upload handlers, and server validation
+  const IMAGE_LIMITS = Object.freeze({
+    MAX_ORIGINAL_SIZE: 15 * 1024 * 1024,   // 15MB — OOM protection
+    MAX_IMAGE_SIZE: 3 * 1024 * 1024,       // 3MB — hard limit
+    MAX_THUMB_SIZE: 100 * 1024,             // 100KB — hard limit
+    FULL_TOLERANCE: 50 * 1024,             // +50KB server grace
+    THUMB_TOLERANCE: 10 * 1024,            // +10KB server grace
+  });
+  const MAX_FULL_ACCEPT = IMAGE_LIMITS.MAX_IMAGE_SIZE + IMAGE_LIMITS.FULL_TOLERANCE;   // 3.05MB
+  const MAX_THUMB_ACCEPT = IMAGE_LIMITS.MAX_THUMB_SIZE + IMAGE_LIMITS.THUMB_TOLERANCE; // 110KB
+
   // Main image processing pipeline
   async function processImage(file, feedbackEl) {
-    // [Fix 1] Client-side limits (ต้องตรงกับ server)
-    const MAX_IMAGE_SIZE = 3 * 1024 * 1024;  // 2MB
-    const MAX_THUMB_SIZE = 100 * 1024;       // 100KB
-    const MAX_ORIGINAL_SIZE = 15 * 1024 * 1024; // 15MB (ป้องกัน OOM)
+    const MAX_IMAGE_SIZE = IMAGE_LIMITS.MAX_IMAGE_SIZE;
+    const MAX_THUMB_SIZE = IMAGE_LIMITS.MAX_THUMB_SIZE;
+    const MAX_ORIGINAL_SIZE = IMAGE_LIMITS.MAX_ORIGINAL_SIZE;
 
     // Validate file size (reject > 15MB to prevent OOM)
     if (file.size > MAX_ORIGINAL_SIZE) {
@@ -3545,77 +3536,82 @@ ${owner2Items}
     const img = await loadImageFromFile(normalizedFile);
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังปรับขนาดรูป...';
-    const fullSize = resizeImage(img, 1600);
-    const fullCanvas = drawToCanvas(img, fullSize.width, fullSize.height);
+
+    // [Compression v5] Dual-stage adaptive loop:
+    // Stage 1: Reduce quality (in-place on same canvas)
+    // Stage 2: If still too big → reduce dimension (rebuild canvas)
+    // Loop until size fits target, or exhaust all attempts
+
+    const FULL_DIMENSIONS = [1600, 1200, 900, 700, 500];
+    const FULL_QUALITIES = [0.8, 0.7, 0.6, 0.5];
+    const THUMB_DIMENSIONS = [300, 250, 200, 150];
+    const THUMB_QUALITIES = [0.8, 0.6, 0.4, 0.3];
+
+    // === FULL IMAGE: adaptive dimension + quality ===
+    let fullBlob = null;
+    let fullDim = null;
+    let fullQuality = null;
+    let fullAttempts = 0;
+
+    for (const dim of FULL_DIMENSIONS) {
+      const fullSize = resizeImage(img, dim);
+      const fullCanvas = drawToCanvas(img, fullSize.width, fullSize.height);
+      for (const q of FULL_QUALITIES) {
+        fullAttempts++;
+        const blob = await canvasToBlob(fullCanvas, q);
+        if (blob.size <= MAX_IMAGE_SIZE) {
+          fullBlob = blob;
+          fullDim = dim;
+          fullQuality = q;
+          break;
+        }
+      }
+      if (fullBlob) break;
+    }
+
+    if (!fullBlob) {
+      throw new Error(
+        `ไฟล์มีขนาดใหญ่เกิน 3MB แม้จะลดขนาดและคุณภาพแล้ว (พยายาม ${fullAttempts} ครั้ง)\n` +
+        `กรุณา resize รูปด้วยแอปอื่นก่อนอัปโหลด`
+      );
+    }
 
     if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังสร้าง thumbnail...';
-    const thumbSize = resizeImage(img, 300);
-    const thumbCanvas = drawToCanvas(img, thumbSize.width, thumbSize.height);
 
-    if (feedbackEl) feedbackEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบีบอัดรูป...';
+    // === THUMBNAIL: adaptive dimension + quality ===
+    let thumbBlob = null;
+    let thumbDim = null;
+    let thumbQuality = null;
+    let thumbAttempts = 0;
 
-    // [Compression v4] Smart Compression Strategy
-    // Priority:
-    // 1. optimizedSize <= MAX_IMAGE_SIZE (2MB) - hard requirement
-    // 2. optimizedSize <= originalSize × 2 (sanity check)
-    // 3. Fallback to original file ONLY if all compression attempts fail
-
-    let quality = 0.8;
-    const MIN_QUALITY = 0.5;
-    const QUALITY_STEP = 0.05;
-
-    // Initial WebP encode
-    let fullBlob = await canvasToBlob(fullCanvas, quality);
-    const thumbBlob = await canvasToBlob(thumbCanvas, 0.8);
-
-    // Step 1: Reduce quality until <= MAX_IMAGE_SIZE
-    while (fullBlob.size > MAX_IMAGE_SIZE && quality > MIN_QUALITY) {
-      quality = Math.max(MIN_QUALITY, quality - QUALITY_STEP);
-      fullBlob = await canvasToBlob(fullCanvas, quality);
+    for (const dim of THUMB_DIMENSIONS) {
+      const thumbSize = resizeImage(img, dim);
+      const thumbCanvas = drawToCanvas(img, thumbSize.width, thumbSize.height);
+      for (const q of THUMB_QUALITIES) {
+        thumbAttempts++;
+        const blob = await canvasToBlob(thumbCanvas, q);
+        if (blob.size <= MAX_THUMB_SIZE) {
+          thumbBlob = blob;
+          thumbDim = dim;
+          thumbQuality = q;
+          break;
+        }
+      }
+      if (thumbBlob) break;
     }
 
-    // Step 2: Determine fallback strategy
-    let usedFallback = false;
-    let fallbackReason = null;
-
-    if (fullBlob.size > MAX_IMAGE_SIZE) {
-      // Compression failed → try original file
-      if (file.size <= MAX_IMAGE_SIZE) {
-        // Original fits in limit → use it
-        usedFallback = true;
-        fallbackReason = "compression_failed_but_original_fits";
-        fullBlob = file;
-      } else {
-        // Original too large → reject
-        throw new Error(
-          `ไฟล์มีขนาด ${formatFileSize(file.size)} ใหญ่เกิน 3MB และไม่สามารถบีบอัดได้\n` +
-          `กรุณา resize รูปด้วยแอปอื่นก่อนอัปโหลด`
-        );
-      }
-    } else if (fullBlob.size > file.size * 2) {
-      // WebP bigger than 2x original (unusual, e.g., small PNG with alpha)
-      // → use original file if it fits
-      if (file.size <= MAX_IMAGE_SIZE) {
-        usedFallback = true;
-        fallbackReason = "webp_bigger_than_original";
-        fullBlob = file;
-      }
-      // else: keep WebP (better quality)
-    }
-
-    const optimizedSize = fullBlob.size;
-    const thumbnailSize = thumbBlob.size;
-
-    // Validate thumbnail
-    if (thumbnailSize > MAX_THUMB_SIZE) {
+    if (!thumbBlob) {
       throw new Error(
-        `Thumbnail มีขนาด ${formatFileSize(thumbnailSize)} ใหญ่เกิน 100KB\n` +
-        `กรุณาเลือกรูปที่มีขนาดเล็กกว่า`
+        `Thumbnail ใหญ่เกิน 100KB แม้จะลดขนาดและคุณภาพแล้ว (พยายาม ${thumbAttempts} ครั้ง)`
       );
     }
 
     const originalSize = file.size;
-    const savedPercent = usedFallback || originalSize <= 0
+    const optimizedSize = fullBlob.size;
+    const thumbnailSize = thumbBlob.size;
+    const usedFallback = false;
+    const fallbackReason = null;
+    const savedPercent = originalSize <= 0
       ? 0
       : ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
 
@@ -3627,7 +3623,13 @@ ${owner2Items}
       thumbSize: thumbnailSize,
       savedPercent,
       usedFallback,
-      fallbackReason
+      fallbackReason,
+      fullDim,
+      fullQuality,
+      thumbDim,
+      thumbQuality,
+      fullAttempts,
+      thumbAttempts
     };
   }
 
