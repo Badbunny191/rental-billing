@@ -4625,8 +4625,9 @@ const owner2Total =
       // 3. ใช้ PDF Container ที่มีขนาด A4 คงที่
       const pdfContainer = document.getElementById("pdfRenderContainer");
 
-      console.log("[pdf] 1. pdfContainer offsetWidth:", pdfContainer.offsetWidth);
-      console.log("[pdf] 2. pdfContainer offsetHeight:", pdfContainer.offsetHeight);
+      // [PDF-FIX] ทำให้ container visible ชั่วคราว (opacity:0 + z-index:-1 ทำให้ WebKit ไม่ render → canvas ขาว)
+      const prevStyle = pdfContainer.getAttribute("style") || "";
+      pdfContainer.setAttribute("style", "position: fixed; left: 0; top: 0; width: 210mm; min-height: 297mm; background: #ffffff; opacity: 1 !important; pointer-events: none; z-index: 99999;");
 
       // 4. สร้าง Canvas จาก DOM
       const canvas = await html2canvas(pdfContainer, {
@@ -4639,6 +4640,9 @@ const owner2Total =
         windowWidth: 794,  // A4 width at 96 DPI (210mm)
         windowHeight: 1123 // A4 height at 96 DPI (297mm)
       });
+
+      // คืน style เดิม
+      pdfContainer.setAttribute("style", prevStyle);
 
       // 5. สร้าง PDF ขนาด A4
       const { jsPDF } = window.jspdf;
