@@ -457,8 +457,11 @@
        ============================================================ */
     .pdf-render-container {
       position: fixed;
-      left: -99999px;
+      left: 0;
       top: 0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -1;
       width: 210mm;
       min-height: 297mm;
       background: #ffffff;
@@ -1911,7 +1914,7 @@
 
   <div class="pdf-footer">กรุณาชำระเงินตามกำหนด ขอบคุณครับ</div>
 </div>
-<div id="mobileShareCardContainer" style="position: fixed; left: -9999px; top: 0; width: 440px; background: #ffffff; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box;">
+<div id="mobileShareCardContainer" style="position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: -1; width: 440px; background: #ffffff; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box;">
   <div id="mobileShareCard" style="background: #ffffff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #1e293b; box-sizing: border-box;">
     
     <!-- ส่วนหัว: ชื่อเอกสารกึ่งกลาง, ประจำเดือนกึ่งกลาง, วันที่ออกบิลชิดขวา -->
@@ -4482,6 +4485,51 @@ const owner2Total =
     }
   }
 
+  /**
+   * iPhone Safari fix: รอ img ทุกตัวใน container ให้โหลดเสร็จ
+   * - ถ้า complete แล้ว → resolve ทันที
+   * - ถ้ายังไม่เสร็จ → รอ onload/onerror
+   * - timeout 10s ต่อ img (เพื่อกัน hang)
+   * - log diagnostic: src, complete, naturalWidth, naturalHeight, currentSrc
+   */
+  async function waitForImages(container, perImageTimeoutMs = 10000) {
+    const imgs = Array.from(container.querySelectorAll("img"));
+    if (imgs.length === 0) return;
+
+    await Promise.all(imgs.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+      return new Promise(resolve => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+        setTimeout(() => resolve(), perImageTimeoutMs);
+      });
+    }));
+  }
+
+  async function downscaleImages(container, maxEdge = 1600) {
+    const imgs = Array.from(container.querySelectorAll("img"));
+    for (const img of imgs) {
+      if (!img.complete || img.naturalWidth === 0) continue;
+      if (Math.max(img.naturalWidth, img.naturalHeight) <= maxEdge) continue;
+      try {
+        const scale = maxEdge / Math.max(img.naturalWidth, img.naturalHeight);
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth * scale;
+        c.height = img.naturalHeight * scale;
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        img.src = c.toDataURL("image/jpeg", 0.85);
+      } catch (e) {
+        // Skip on error
+      }
+    }
+  }
+
+  // Preview image selector
+  const DIAG_PREVIEW_SELECTOR =
+    "#billImagePreviewCurrent,#billImagePreviewPrevious,#meterImagePreviewCurrent,#meterImagePreviewPrevious";
+
   async function generateShareCardCanvas() {
     if (!latestStatement) {
       alert("ยังไม่มีข้อมูลการคำนวณสำหรับงวดนี้");
@@ -4489,7 +4537,33 @@ const owner2Total =
     }
     populateShareCardDOM(latestStatement);
     const cardElement = document.getElementById("mobileShareCard");
-    return await html2canvas(cardElement, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+
+    let canvas = null;
+
+    // ซ่อน preview images ชั่วคราว
+    const previewEls = Array.from(document.querySelectorAll(DIAG_PREVIEW_SELECTOR));
+    const toRemove = previewEls.filter(el => el !== cardElement);
+    const previewSnapshots = toRemove.map(el => {
+      const parent = el.parentNode;
+      const commentNode = document.createComment("diag-removed: " + el.id);
+      parent.replaceChild(commentNode, el);
+      return { el, commentNode, parent };
+    });
+
+    try {
+      canvas = await Promise.race([
+        html2canvas(cardElement, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("html2canvas timeout (15s)")), 15000)
+        )
+      ]);
+    } finally {
+      previewSnapshots.forEach(({ el, commentNode, parent }) => {
+        parent.replaceChild(el, commentNode);
+      });
+    }
+
+    return canvas;
   }
 
   // ============================================================
@@ -4551,9 +4625,12 @@ const owner2Total =
       // 3. ใช้ PDF Container ที่มีขนาด A4 คงที่
       const pdfContainer = document.getElementById("pdfRenderContainer");
 
+      console.log("[pdf] 1. pdfContainer offsetWidth:", pdfContainer.offsetWidth);
+      console.log("[pdf] 2. pdfContainer offsetHeight:", pdfContainer.offsetHeight);
+
       // 4. สร้าง Canvas จาก DOM
       const canvas = await html2canvas(pdfContainer, {
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
@@ -4577,13 +4654,12 @@ const owner2Total =
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      console.log({
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.8);
-      pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+      const imgData = canvas.toDataURL("image/png");
+      console.log("[pdf] 3. canvas.width:", canvas.width);
+      console.log("[pdf] 4. canvas.height:", canvas.height);
+      console.log("[pdf] 5. imgWidth:", imgWidth, "imgHeight:", imgHeight);
+      console.log("[pdf] 6. imgData length:", imgData.length);
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
 
       // 7. ดาวน์โหลด
       const filename = `invoice-${latestStatement.month}.pdf`;
@@ -4600,14 +4676,20 @@ const owner2Total =
     try {
       showToast("กำลังสร้างรูปภาพ...");
       const canvas = await generateShareCardCanvas();
-      if (!canvas) return;
+      if (!canvas) {
+        alert("ไม่สามารถสร้างรูปภาพได้ (canvas is null)");
+        return;
+      }
+
+      const dataURL = canvas.toDataURL("image/png");
 
       const link = document.createElement("a");
       link.download = `bill-${latestStatement.month}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataURL;
       link.click();
       showToast("ดาวน์โหลดรูปภาพสำเร็จ!");
     } catch (e) {
+      console.error("[share-png] error:", e);
       alert("ไม่สามารถสร้างรูปภาพได้: " + e.message);
     }
   }
@@ -4616,7 +4698,10 @@ const owner2Total =
     try {
       showToast("กำลังเตรียมรูปภาพ...");
       const canvas = await generateShareCardCanvas();
-      if (!canvas) return;
+      if (!canvas) {
+        alert("ไม่สามารถสร้างรูปภาพได้ (canvas is null)");
+        return;
+      }
 
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -4629,7 +4714,7 @@ const owner2Total =
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
-              title: `ใบแจ้งค่าเช่า-${latestStatement.month}`,
+              title: `ใบแแจ้งค่าเช่า-${latestStatement.month}`,
               text: `ใบแจ้งค่าเช่าและสาธารณูปโภค ประจำเดือน ${formatThaiMonth(latestStatement.month)}`,
               files: [file]
             });
@@ -4644,6 +4729,7 @@ const owner2Total =
         }
       }, "image/png");
     } catch (e) {
+      console.error("[diag] shareCardImage error:", e);
       downloadShareCardPNG();
     }
   }
