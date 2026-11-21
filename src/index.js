@@ -349,10 +349,15 @@ Return JSON only in this exact format, no other text:
           });
         }
 
+        // [BUGFIX] อ่าน record เดิมก่อน เพื่อคง billImage metadata ไว้
+        // ไม่เช่นนั้นการบันทึกฟอร์มจะเขียนทับและลบรูปที่อัปโหลดไว้ทิ้ง
+        const existingBill = await env.HOUSE_RENT_KV.get(`utility_bill:${payload.month}`, { type: "json" });
+
         const billData = {
           month: payload.month,
           unit: Number(payload.unit),
           amount: Number(payload.amount),
+          ...(existingBill?.billImage ? { billImage: existingBill.billImage } : {}),
           updatedAt: new Date().toISOString()
         };
 
@@ -393,10 +398,15 @@ Return JSON only in this exact format, no other text:
           });
         }
 
+        // [BUGFIX] อ่าน record เดิมก่อน เพื่อคง meterImage metadata ไว้
+        // ไม่เช่นนั้นการบันทึกเลขมิเตอร์จะเขียนทับและลบรูปที่อัปโหลดไว้ทิ้ง
+        const existingMeter = await env.HOUSE_RENT_KV.get(`meter_reading:${payload.month}`, { type: "json" });
+
         const meterData = {
           month: payload.month,
           previousReading: Math.floor(Number(payload.previousReading)),
           currentReading: Math.floor(Number(payload.currentReading)),
+          ...(existingMeter?.meterImage ? { meterImage: existingMeter.meterImage } : {}),
           updatedAt: new Date().toISOString()
         };
 
